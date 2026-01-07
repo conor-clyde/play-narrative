@@ -2,17 +2,140 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <title>Add Game</title>
+    <style>
+        .search-section { margin-bottom: 20px; }
+        .search-results { margin-top: 10px; max-height: 300px; overflow-y: auto; }
+        .game-result { padding: 10px; border-bottom: 1px solid #ddd; cursor: pointer; display: flex; align-items: center; }
+        .game-result:hover { background-color: #f5f5f5; }
+        .game-image { width: 50px; height: 38px; object-fit: cover; margin-right: 10px; border-radius: 4px; }
+        .game-info { flex: 1; }
+        .selected { background-color: #e3f2fd; }
+        .form-section { margin-top: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 4px; }
+        .hidden { display: none; }
+    </style>
 </head>
 <body>
 
-<h1>Add Game</h1>
+<h1>Add Game to Library</h1>
 
-<form th:action="@{/games/add}" th:object="${game}" method="post">
-    <input type="text" th:field="*{title}" placeholder="Game title"/>
-    <button type="submit">Save</button>
-</form>
+<div class="search-section">
+    <h2>Search RAWG Database</h2>
+    <input type="text" id="searchInput" placeholder="Search for games..." style="width: 250px; padding: 6px;"/>
+    <button onclick="searchGames()">Search</button>
+
+    <div id="results" class="search-results hidden"></div>
+</div>
+
+<div class="form-section">
+    <h2>Add Game</h2>
+    <form th:action="@{/games/add}" th:object="${game}" method="post">
+        <div style="margin-bottom: 10px;">
+            <label>Title: </label>
+            <input type="text" th:field="*{title}" id="title" required style="width: 250px; padding: 6px;"/>
+        </div>
+
+        <div style="margin-bottom: 10px;">
+            <label>RAWG ID: </label>
+            <input type="text" th:field="*{rawgId}" id="rawgId" readonly style="width: 250px; padding: 6px; background-color: #f9f9f9;"/>
+        </div>
+
+        <div style="margin-bottom: 10px;">
+            <label>Owned: </label>
+            <input type="radio" th:field="*{owned}" value="true" id="ownedYes"/> Yes
+            <input type="radio" th:field="*{owned}" value="false" id="ownedNo" checked/> No
+        </div>
+
+        <div style="margin-bottom: 10px;">
+            <label>Intent: </label>
+            <select th:field="*{intent}" style="width: 250px; padding: 6px;">
+                <option value="">Select intent</option>
+                <option value="want-to-play">Want to play</option>
+                <option value="want-to-buy">Want to buy</option>
+                <option value="completed">Completed</option>
+                <option value="playing">Currently playing</option>
+                <option value="dropped">Dropped</option>
+            </select>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label>Platforms: </label>
+            <input type="text" th:field="*{platforms}" placeholder="PC, PS5, Xbox..." style="width: 250px; padding: 6px;"/>
+        </div>
+
+        <button type="submit" style="padding: 8px 16px;">Add to Library</button>
+    </form>
+</div>
 
 <a href="/games">Back to list</a>
+
+<script>
+let selectedGameId = null;
+
+function searchGames() {
+    const query = document.getElementById('searchInput').value.trim();
+    if (!query) {
+        alert('Please enter a search term');
+        return;
+    }
+
+    const resultsDiv = document.getElementById('results');
+    resultsDiv.innerHTML = 'Searching...';
+    resultsDiv.classList.remove('hidden');
+
+    fetch(`/api/games/search?query=${encodeURIComponent(query)}`)
+        .then(response => response.json())
+        .then(games => {
+            displayResults(games);
+        })
+        .catch(error => {
+            console.error('Search failed:', error);
+            resultsDiv.innerHTML = 'Search failed. Try again.';
+        });
+}
+
+function displayResults(games) {
+    const resultsDiv = document.getElementById('results');
+
+    if (games.length === 0) {
+        resultsDiv.innerHTML = 'No games found.';
+        return;
+    }
+
+    let html = '';
+    games.forEach(game => {
+        const imageUrl = game.background_image || 'https://via.placeholder.com/50x38?text=No+Image';
+        html += `
+            <div class="game-result" onclick="selectGame('${game.id}', '${game.name.replace(/'/g, "\\'")}')">
+                <img src="${imageUrl}" alt="${game.name}" class="game-image" onerror="this.src='https://via.placeholder.com/50x38?text=No+Image'">
+                <div class="game-info">${game.name}</div>
+            </div>
+        `;
+    });
+
+    resultsDiv.innerHTML = html;
+}
+
+function selectGame(id, name) {
+    // Remove selection from all results
+    document.querySelectorAll('.game-result').forEach(el => el.classList.remove('selected'));
+
+    // Add selection to clicked result
+    event.currentTarget.classList.add('selected');
+
+    // Fill form
+    document.getElementById('title').value = name;
+    document.getElementById('rawgId').value = id;
+
+    selectedGameId = id;
+}
+
+// Allow search on Enter key
+document.getElementById('searchInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        searchGames();
+    }
+});
+</script>
 
 </body>
 </html>

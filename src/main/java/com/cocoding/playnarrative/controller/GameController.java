@@ -1,6 +1,7 @@
 package com.cocoding.playnarrative.controller;
 
 import com.cocoding.playnarrative.model.Game;
+import com.cocoding.playnarrative.service.RawgService;
 import com.cocoding.playnarrative.repository.GameRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -15,9 +16,11 @@ import com.cocoding.playnarrative.service.RawgService;
 public class GameController {
 
     private final GameRepository gameRepository;
+    private final RawgService rawgService;
 
-    public GameController(GameRepository gameRepository) {
+    public GameController(GameRepository gameRepository, RawgService rawgService) {
         this.gameRepository = gameRepository;
+        this.rawgService = rawgService;
     }
 
     // === WEB PAGES (HTML) ===
@@ -70,5 +73,11 @@ public class GameController {
         model.addAttribute("details", details); // RAWG data (artwork, genre, description)
 
         return "library/game";
+    }
+
+    @GetMapping("/api/games/search")
+    @ResponseBody
+    public List<Map<String, Object>> searchGames(@RequestParam String query) {
+        return rawgService.searchGames(query);
     }
 }
