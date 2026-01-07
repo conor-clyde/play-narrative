@@ -1,0 +1,27 @@
+<h1 th:text="${game.title}"></h1>
+
+<!-- Artwork -->
+<img th:src="${details.background_image}" alt="Game Artwork" width="400"/>
+
+<!-- Genre -->
+<p>
+    <strong>Genre:</strong>
+    <span th:text="${#lists.join(details.genres.*, ', ')}"></span>
+</p>
+
+<!-- Release date -->
+<p>
+    <strong>Release Date:</strong> <span th:text="${details.released}"></span>
+</p>
+
+<!-- Description -->
+<div th:utext="${details.description_raw}"></div>
+
+<!-- User Data -->
+<p>
+    <strong>Status:</strong> <span th:text="${game.owned} ? 'Owned' : 'Wishlist'"></span><br/>
+    <strong>Platforms:</strong> <span th:text="${#strings.arrayJoin(game.platforms, ', ')}"></span><br/>
+    <strong>Play Intent:</strong> <span th:text="${game.playIntent}"></span>
+</p>
+
+<a href="/library">Back to Library</a>

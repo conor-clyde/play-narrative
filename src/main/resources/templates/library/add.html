@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Add Game</title>
+</head>
+<body>
+
+<h1>Add Game</h1>
+
+<form th:action="@{/games/add}" th:object="${game}" method="post">
+    <input type="text" th:field="*{title}" placeholder="Game title"/>
+    <button type="submit">Save</button>
+</form>
+
+<a href="/games">Back to list</a>
+
+</body>
+</html>
