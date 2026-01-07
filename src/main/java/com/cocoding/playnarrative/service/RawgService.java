@@ -48,4 +48,28 @@ public class RawgService {
 
         return results;
     }
+
+    public Map<String, Object> getGameDetails(String rawgId) {
+        Map<String, Object> details = new HashMap<>();
+
+        try {
+            String url = BASE_URL + "/games/" + rawgId + "?key=" + apiKey;
+            Map response = restTemplate.getForObject(url, Map.class);
+
+            details.put("name", response.get("name").toString());
+
+            if (response.containsKey("description_raw") && response.get("description_raw") != null) {
+                details.put("description", response.get("description_raw").toString());
+            }
+
+            if (response.containsKey("background_image") && response.get("background_image") != null) {
+                details.put("background_image", response.get("background_image").toString());
+            }
+
+        } catch (Exception e) {
+            System.err.println("Failed to get game details: " + e.getMessage());
+        }
+
+        return details;
+    }
 }
