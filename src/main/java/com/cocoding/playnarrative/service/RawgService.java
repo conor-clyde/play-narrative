@@ -22,7 +22,7 @@ public class RawgService {
         List<Map<String, Object>> results = new ArrayList<>();
 
         try {
-            String url = BASE_URL + "/games?key=" + apiKey + "&search=" + query + "&page_size=10";
+            String url = BASE_URL + "/games?key=" + apiKey + "&search=" + query + "&page_size=5";
             Map response = restTemplate.getForObject(url, Map.class);
 
             if (response.containsKey("results")) {
@@ -34,10 +34,6 @@ public class RawgService {
 
                     gameData.put("id", game.get("id").toString());
                     gameData.put("name", game.get("name").toString());
-
-                    if (game.containsKey("background_image") && game.get("background_image") != null) {
-                        gameData.put("background_image", game.get("background_image").toString());
-                    }
 
                     results.add(gameData);
                 }
