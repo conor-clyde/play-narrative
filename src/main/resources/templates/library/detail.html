@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${game.title} + ' - PlayNarrative'">Game Details - PlayNarrative</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <!-- Header -->
+    <div th:replace="~{fragments/header :: header}"></div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Back Button -->
+            <a href="/library" class="btn-back-detail">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+                Back to Library
+            </a>
+
+            <!-- Game Detail Header -->
+            <div class="game-detail-header-modern" th:if="${game}">
+                <div class="game-detail-cover">
+                    <img th:if="${game.imageUrl}" th:src="${game.imageUrl}" th:alt="${game.title}" class="game-cover-large">
+                    <div th:unless="${game.imageUrl}" class="game-cover-placeholder">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect>
+                            <polyline points="17 2 12 7 7 2"></polyline>
+                        </svg>
+                    </div>
+                </div>
+                <div class="game-detail-main">
+                    <div class="game-detail-title-row">
+                        <div class="game-detail-title-section">
+                            <h1 class="game-detail-title-modern" th:text="${game.title}">Game Title</h1>
+                            <div class="game-detail-meta-badges">
+                                <!-- Release Year -->
+                                <span class="game-detail-year" th:if="${game.releaseYear != null and !game.releaseYear.isEmpty()}" th:text="${game.releaseYear}">2024</span>
+                                
+                                <!-- Currently Enjoying Tag -->
+                                <span class="game-detail-badge badge-currently-playing" th:if="${isCurrentlyPlaying}">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                    </svg>
+                                    Currently Enjoying
+                                </span>
+                                
+                                <!-- Status Badge -->
+                                <span class="game-detail-badge" th:classappend="${game.ownershipStatus != null and game.ownershipStatus.name() == 'OWNED' ? 'badge-owned' : 'badge-wishlist'}">
+                                    <span th:text="${game.ownershipStatus != null and game.ownershipStatus.name() == 'OWNED' ? 'Owned' : 'Wishlist'}">Owned</span>
+                                </span>
+                                
+                                
+                                <!-- Finished Badge -->
+                                <span class="game-detail-badge badge-finished" th:if="${game.playState != null and game.playState.name() == 'FINISHED'}">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                    </svg>
+                                    Finished
+                                </span>
+                            </div>
+                            
+                            <!-- Platform Icons -->
+                            <div class="game-detail-platforms-header" th:if="${game.platforms != null and !game.platforms.isEmpty()}">
+                                <th:block th:each="platform : ${game.platforms}">
+                                    <span class="platform-icon-header" 
+                                          th:data-platform="${platform}"
+                                          th:title="${platform}">
+                                        <!-- Icon will be populated by JavaScript -->
+                                    </span>
+                                </th:block>
+                            </div>
+                        </div>
+                        <button id="editToggleBtn" class="btn-edit-modern" onclick="toggleEditMode()">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                            <span id="editToggleText">Edit</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Quick Stats -->
+                    <div class="game-detail-stats" th:if="${sessionStats != null}">
+                        <div class="stat-item" th:if="${sessionStats['totalHours'] > 0 or sessionStats['totalMinutes'] > 0}">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            <span>
+                                <strong th:text="${sessionStats['totalHours'] > 0 ? (sessionStats['totalHours'] + 'h' + (sessionStats['remainingMinutes'] > 0 ? (' ' + sessionStats['remainingMinutes'] + 'm') : '')) : (sessionStats['totalMinutes'] + 'm')}">0h</strong>
+                                <span class="stat-label">Total Playtime</span>
+                            </span>
+                        </div>
+                        <div class="stat-item" th:if="${sessionStats['lastSessionDate'] != null}">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            <span>
+                                <strong th:text="${#temporals.format(sessionStats['lastSessionDate'], 'MMM d, yyyy')}">Jan 5, 2025</strong>
+                                <span class="stat-label">Last Played</span>
+                            </span>
+                        </div>
+                        <div class="stat-item" th:if="${sessionStats['sessionCount'] > 0}">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                <line x1="3" y1="10" x2="21" y2="10"></line>
+                            </svg>
+                            <span>
+                                <strong th:text="${sessionStats['sessionCount']}">0</strong>
+                                <span class="stat-label" th:text="${sessionStats['sessionCount'] == 1 ? 'Session' : 'Sessions'}">Sessions</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- View Mode -->
+            <div id="viewMode" class="game-detail-content">
+                <!-- Game Info Cards -->
+                <div class="detail-cards-grid">
+                    <!-- Engagement Type Card -->
+                    <div class="detail-card">
+                        <h3 class="detail-card-title">Engagement Type</h3>
+                        <div class="detail-card-content" id="viewEngagementTypes">
+                            <span th:if="${game.engagementTypes == null or game.engagementTypes.isEmpty()}" class="detail-empty">No engagement type set. Click Edit to add.</span>
+                            <div class="intent-tags-modern" th:if="${game.engagementTypes != null and !game.engagementTypes.isEmpty()}">
+                                <span th:each="engagementType : ${game.engagementTypes}" 
+                                      class="intent-tag-modern"
+                                      th:text="${engagementType.displayName}">Story</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Platforms Card -->
+                    <div class="detail-card">
+                        <h3 class="detail-card-title">Platforms</h3>
+                        <div class="detail-card-content" id="viewPlatforms">
+                            <span th:if="${game.platforms == null or game.platforms.isEmpty()}" class="detail-empty">No platforms set</span>
+                            <div class="platform-tags-modern" th:if="${game.platforms != null and !game.platforms.isEmpty()}">
+                                <span th:each="platform : ${game.platforms}" 
+                                      class="platform-tag-modern"
+                                      th:text="${platform}">PC</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Status & Format Card -->
+                    <div class="detail-card">
+                        <h3 class="detail-card-title">Details</h3>
+                        <div class="detail-card-content">
+                            <div class="detail-info-row">
+                                <span class="detail-label">Status:</span>
+                                <span class="detail-value" id="viewStatus" th:text="${game.ownershipStatus != null and game.ownershipStatus.name() == 'OWNED' ? 'Owned' : 'Wishlist'}">Owned</span>
+                            </div>
+                            <div class="detail-info-row" th:if="${game.format != null}">
+                                <span class="detail-label">Format:</span>
+                                <span class="detail-value" id="viewFormat" th:text="${game.format != null and game.format.name() == 'PHYSICAL' ? '📦 Physical' : (game.format != null and game.format.name() == 'DIGITAL' ? '💿 Digital' : (game.format != null and game.format.name() == 'BOTH' ? '📦💿 Both' : 'Not set'))}">Digital</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Session Summary Section -->
+                <div class="detail-section session-summary-section">
+                    <h2 class="detail-section-title">Session Summary</h2>
+                    <div class="session-summary-grid">
+                        <div class="session-summary-card">
+                            <div class="summary-value" th:if="${sessionStats['totalHours'] > 0 or sessionStats['totalMinutes'] > 0}">
+                                <span th:text="${sessionStats['totalHours'] > 0 ? (sessionStats['totalHours'] + 'h' + (sessionStats['remainingMinutes'] > 0 ? (' ' + sessionStats['remainingMinutes'] + 'm') : '')) : (sessionStats['totalMinutes'] + 'm')}">0h</span>
+                            </div>
+                            <div class="summary-value" th:unless="${sessionStats['totalHours'] > 0 or sessionStats['totalMinutes'] > 0}">
+                                <span>0h</span>
+                            </div>
+                            <div class="summary-label">Total Playtime</div>
+                        </div>
+                        <div class="session-summary-card">
+                            <div class="summary-value" th:if="${sessionStats['lastSessionDate'] != null}">
+                                <span th:text="${#temporals.format(sessionStats['lastSessionDate'], 'MMM d')}">Jan 5</span>
+                            </div>
+                            <div class="summary-value" th:unless="${sessionStats['lastSessionDate'] != null}">
+                                <span>Never</span>
+                            </div>
+                            <div class="summary-label">Last Played</div>
+                        </div>
+                        <div class="session-summary-card">
+                            <div class="summary-value">
+                                <span th:text="${sessionStats['sessionCount']}">0</span>
+                            </div>
+                            <div class="summary-label" th:text="${sessionStats['sessionCount'] == 1 ? 'Session' : 'Sessions'}">Sessions</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Session History -->
+                <div class="detail-section" th:if="${sessions != null and !sessions.isEmpty()}">
+                    <h2 class="detail-section-title">Session Logs</h2>
+                    <div class="sessions-list-modern">
+                        <div class="session-item-modern" th:each="session : ${sessions}">
+                            <div class="session-item-header">
+                                <div class="session-intent-badge" th:classappend="${'intent-' + session.intent.getCode()}">
+                                    <span th:text="${session.intent.getDisplayName()}">Story</span>
+                                </div>
+                                <div class="session-date-modern">
+                                    <span th:text="${#temporals.format(session.sessionDate, 'MMM d, yyyy')}">Jan 1, 2025</span>
+                                    <span class="session-time" th:text="${#temporals.format(session.sessionDate, 'h:mm a')}">12:00 PM</span>
+                                </div>
+                            </div>
+                            <div class="session-item-details" th:if="${session.durationMinutes != null or (session.notes != null and !session.notes.isEmpty())}">
+                                <div class="session-duration" th:if="${session.durationMinutes != null}">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <polyline points="12 6 12 12 16 14"></polyline>
+                                    </svg>
+                                    <span th:text="${session.durationMinutes + ' minutes'}">120 minutes</span>
+                                </div>
+                                <div class="session-notes" th:if="${session.notes != null and !session.notes.isEmpty()}">
+                                    <p th:text="${session.notes}">Session notes...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty Sessions State -->
+                <div class="detail-section empty-sessions" th:if="${sessions == null or sessions.isEmpty()}">
+                    <div class="empty-sessions-content">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        <h3>No sessions yet</h3>
+                        <p>Start tracking your playtime by logging your first session</p>
+                        <a th:href="@{/sessions/new(gameId=${game.id})}" class="btn-primary-modern">Log First Session</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edit Mode -->
+            <div id="editMode" class="game-detail-edit" style="display: none;">
+                <form id="gameEditForm" class="game-edit-form-modern" onsubmit="saveGameChanges(event)">
+                    <div class="edit-sections">
+                        <!-- Engagement Type Section -->
+                        <div class="edit-section">
+                            <h3 class="edit-section-title">Engagement Type</h3>
+                            <p class="edit-section-help">How do you engage with this game? Select all that apply (optional)</p>
+                            <div class="intent-selection-grid-modern">
+                                <label class="intent-selection-option-modern" th:each="engagementType : ${T(com.cocoding.playnarrative.model.EngagementType).values()}">
+                                    <input type="checkbox" 
+                                           class="intent-checkbox-modern" 
+                                           name="engagementTypes"
+                                           th:value="${engagementType.name()}"
+                                           th:checked="${game.engagementTypes != null and game.engagementTypes.contains(engagementType)}">
+                                    <span class="intent-option-label-modern" th:text="${engagementType.displayName}">Story</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Platforms Section -->
+                        <div class="edit-section">
+                            <h3 class="edit-section-title">Platforms</h3>
+                            <p class="edit-section-help">Select which platforms you own this game for</p>
+                            <div class="platform-selection-grid-modern">
+                                <label class="platform-selection-option-modern">
+                                    <input type="checkbox" name="platforms" value="PC" th:checked="${game.platforms != null and game.platforms.contains('PC')}">
+                                    <span>🖥️ PC</span>
+                                </label>
+                                <label class="platform-selection-option-modern">
+                                    <input type="checkbox" name="platforms" value="PS5" th:checked="${game.platforms != null and game.platforms.contains('PS5')}">
+                                    <span>🎮 PS5</span>
+                                </label>
+                                <label class="platform-selection-option-modern">
+                                    <input type="checkbox" name="platforms" value="PS4" th:checked="${game.platforms != null and game.platforms.contains('PS4')}">
+                                    <span>🎮 PS4</span>
+                                </label>
+                                <label class="platform-selection-option-modern">
+                                    <input type="checkbox" name="platforms" value="Xbox Series X/S" th:checked="${game.platforms != null and game.platforms.contains('Xbox Series X/S')}">
+                                    <span>🎮 Xbox Series X/S</span>
+                                </label>
+                                <label class="platform-selection-option-modern">
+                                    <input type="checkbox" name="platforms" value="Xbox One" th:checked="${game.platforms != null and game.platforms.contains('Xbox One')}">
+                                    <span>🎮 Xbox One</span>
+                                </label>
+                                <label class="platform-selection-option-modern">
+                                    <input type="checkbox" name="platforms" value="Nintendo Switch" th:checked="${game.platforms != null and game.platforms.contains('Nintendo Switch')}">
+                                    <span>🎮 Switch</span>
+                                </label>
+                                <label class="platform-selection-option-modern">
+                                    <input type="checkbox" name="platforms" value="Mac" th:checked="${game.platforms != null and game.platforms.contains('Mac')}">
+                                    <span>💻 Mac</span>
+                                </label>
+                                <label class="platform-selection-option-modern">
+                                    <input type="checkbox" name="platforms" value="Linux" th:checked="${game.platforms != null and game.platforms.contains('Linux')}">
+                                    <span>🐧 Linux</span>
+                                </label>
+                                <label class="platform-selection-option-modern">
+                                    <input type="checkbox" name="platforms" value="iOS" th:checked="${game.platforms != null and game.platforms.contains('iOS')}">
+                                    <span>📱 iOS</span>
+                                </label>
+                                <label class="platform-selection-option-modern">
+                                    <input type="checkbox" name="platforms" value="Android" th:checked="${game.platforms != null and game.platforms.contains('Android')}">
+                                    <span>📱 Android</span>
+                                </label>
+                            </div>
+                            <div class="custom-platform-modern">
+                                <input type="text" id="customPlatform" name="customPlatform" 
+                                       placeholder="Custom platform (e.g., Steam Deck)" 
+                                       class="form-input-modern">
+                            </div>
+                        </div>
+
+                        <!-- Status & Format Section -->
+                        <div class="edit-section">
+                            <h3 class="edit-section-title">Status & Format</h3>
+                            <div class="edit-form-row">
+                                <div class="edit-form-field">
+                                    <label for="gameStatus">Status</label>
+                                    <select id="gameStatus" name="status" class="form-select-modern">
+                                        <option value="owned" th:selected="${game.ownershipStatus != null and game.ownershipStatus.name() == 'OWNED'}">Owned</option>
+                                        <option value="wishlist" th:selected="${game.ownershipStatus != null and game.ownershipStatus.name() == 'WISHLIST'}">Wishlist</option>
+                                    </select>
+                                </div>
+                                <div class="edit-form-field">
+                                    <label>Format</label>
+                                    <div class="format-radio-group-modern">
+                                        <label class="format-radio-modern">
+                                            <input type="radio" name="format" value="physical" th:checked="${game.format != null and game.format.name() == 'PHYSICAL'}">
+                                            <span>📦 Physical</span>
+                                        </label>
+                                        <label class="format-radio-modern">
+                                            <input type="radio" name="format" value="digital" th:checked="${game.format != null and game.format.name() == 'DIGITAL'}">
+                                            <span>💿 Digital</span>
+                                        </label>
+                                        <label class="format-radio-modern">
+                                            <input type="radio" name="format" value="both" th:checked="${game.format != null and game.format.name() == 'BOTH'}">
+                                            <span>Both</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="edit-form-actions">
+                        <button type="button" class="btn-secondary-modern" onclick="cancelEdit()">Cancel</button>
+                        <button type="submit" class="btn-primary-modern">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Actions Bar -->
+            <div class="game-detail-actions-modern">
+                <a th:href="@{/sessions/new(gameId=${game.id})}" class="btn-primary-modern" th:if="${game.playState == null or game.playState.name() != 'FINISHED'}">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Log Session
+                </a>
+                <button type="button" class="btn-secondary-modern" onclick="toggleEditMode()" th:if="${game.playState == null or game.playState.name() != 'FINISHED'}">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                    Update Intent
+                </button>
+                <!-- Mark as Complete / Unmark Complete -->
+                <form th:action="@{/library/{id}/finished(id=${game.id})}" method="post" style="display: inline;">
+                    <input type="hidden" name="finished" th:value="${game.playState == null or game.playState.name() != 'FINISHED'}">
+                    <button type="submit" class="btn-complete-modern" th:classappend="${game.playState != null and game.playState.name() == 'FINISHED' ? 'btn-complete-active' : ''}">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" th:if="${game.playState == null or game.playState.name() != 'FINISHED'}">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" th:if="${game.playState != null and game.playState.name() == 'FINISHED'}">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>
+                        <span th:text="${game.playState != null and game.playState.name() == 'FINISHED' ? 'Mark as Incomplete' : 'Mark as Finished'}">Mark as Finished</span>
+                    </button>
+                </form>
+                <form th:action="@{/library/remove/{id}(id=${game.id})}" method="post" style="display: inline;">
+                    <button type="submit" class="btn-danger-modern" onclick="return confirm('Remove this game from your library?')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                        Remove
+                    </button>
+                </form>
+            </div>
+        </div>
+    </main>
+    
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const gameId = /*[[${game.id}]]*/ null;
+        let isEditMode = false;
+        
+        // Helper function to get platform icon (same as in list.html)
+        function getPlatformIcon(platform) {
+            const playstationIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="m9.218 19.332 3.597 1.207V7.47c0 -0.455 0.307 -1.001 0.672 -1.001 0.465 0 0.759 0.633 0.759 1.001v4.927c0.297 0.174 0.993 0.52 1.4 0.52l0.032 0c0.556 0.002 2.494 0.006 2.494 -2.948 0 -3.013 -1.59 -4.149 -2.916 -4.583l-6.038 -1.89v15.835Zm-1 -0.905v-1.735c-0.839 0.312 -1.606 0.564 -2.079 0.638 -0.89 0.138 -1.855 0.038 -1.735 -0.469 0.103 -0.432 2.31 -1.201 3.814 -1.678V13.21c-2.852 0.89 -7.213 2.396 -7.213 3.401 0 1.42 3.337 1.847 4.118 1.894 0.457 0.028 1.724 0.072 3.095 -0.077Zm5.597 1.82c3.325 -1.108 9.178 -3.293 9.178 -4.251 0 -1.254 -3.375 -2.072 -5.491 -1.988 -1.083 0.043 -2.426 0.318 -3.687 0.662v1.974a92.267 92.267 0 0 1 3.829 -1.31c0.686 -0.209 1.479 -0.169 1.846 0 0.568 0.26 0.355 0.567 -0.829 1.04 -0.706 0.283 -2.993 1.128 -4.846 1.807v2.067Z" clip-rule="evenodd"/></svg>';
+            const switchIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M5.5 2.75A3.25 3.25 0 0 0 2.25 6v12a3.25 3.25 0 0 0 3.25 3.25h4.25V2.75H5.5ZM0.75 6A4.75 4.75 0 0 1 5.5 1.25h5.75v21.5H5.5A4.75 4.75 0 0 1 0.75 18V6Zm7.5 2a2 2 0 1 1 -4 0 2 2 0 0 1 4 0ZM18.5 1.25h-5.75v21.5h5.75A4.75 4.75 0 0 0 23.25 18V6a4.75 4.75 0 0 0 -4.75 -4.75ZM20 13a2 2 0 1 1 -4 0 2 2 0 0 1 4 0Z" clip-rule="evenodd"/></svg>';
+            const xboxIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2ZM8.5 8.5c1.38 0 2.5 1.12 2.5 2.5s-1.12 2.5-2.5 2.5S6 12.38 6 11s1.12-2.5 2.5-2.5Zm7 0c1.38 0 2.5 1.12 2.5 2.5s-1.12 2.5-2.5 2.5-2.5-1.12-2.5-2.5 1.12-2.5 2.5-2.5ZM12 14.5c-1.93 0-3.5-1.57-3.5-3.5S10.07 7.5 12 7.5s3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5Z" clip-rule="evenodd"/></svg>';
+            const pcIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M3 4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1H3Zm0 13a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-1a1 1 0 0 0-1-1H3Zm2-2h14V6H5v9Z" clip-rule="evenodd"/></svg>';
+            const macIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>';
+            const linuxIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12.504 0c-.155 0-.315.008-.48.021-4.226.333-3.105 4.807-3.17 6.298-.076 1.092-.3 1.953-1.05 3.02-.885 1.052-1.2 2.225-1.176 3.624.024 1.393.236 2.229 1.122 3.359.905 1.117 2.487 2.188 4.506 2.36 3.362.288 5.186-1.8 5.77-3.127.448-1.015.631-2.107.6-3.17-.053-1.593-.857-2.538-1.465-3.232-.89-1.008-1.3-1.472-1.3-2.717 0-1.247.763-2.498 1.47-3.254.508-.544.9-.964.9-1.514 0-.465-.352-.977-.832-1.38C16.483.885 14.832.024 12.504 0zm-.998 2.032c.942.007 1.78.324 2.508.8 1.16.76 1.825 1.893 2.38 3.245.39.949.55 1.864.4 2.8-.15.936-.6 1.712-1.3 2.4-.7.688-1.6 1.2-2.6 1.504-.5.15-1.01.23-1.52.24-.51.01-1.02-.05-1.5-.2-1.92-.6-3.4-2.04-4.2-3.88-.4-.92-.6-1.9-.5-2.88.1-.98.5-1.9 1.1-2.66.6-.76 1.4-1.36 2.3-1.76.45-.2.93-.32 1.42-.36.25-.02.5-.02.75-.01zm6.998 3.936c.35.002.7.05 1.02.15.64.2 1.22.6 1.66 1.12.44.52.7 1.15.74 1.82.04.67-.15 1.32-.54 1.86-.39.54-.96.94-1.6 1.12-.32.09-.66.13-1 .12-.34-.01-.67-.07-.98-.17-.64-.2-1.22-.6-1.66-1.12-.44-.52-.7-1.15-.74-1.82-.04-.67.15-1.32.54-1.86.39-.54.96-.94 1.6-1.12.3-.09.62-.13.94-.12zm-6.5 4.032c.5 0 1 .1 1.46.3.92.4 1.64 1.2 2.04 2.16.2.48.3.98.28 1.48-.02.5-.14.98-.38 1.42-.48.88-1.28 1.56-2.24 1.92-.48.18-.98.26-1.48.24-.5-.02-.98-.12-1.44-.32-.92-.4-1.64-1.2-2.04-2.16-.2-.48-.3-.98-.28-1.48.02-.5.14-.98.38-1.42.48-.88 1.28-1.56 2.24-1.92.46-.18.96-.26 1.46-.24z"/></svg>';
+            const iosIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>';
+            const androidIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993.0001.5511-.4482.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993 0 .5511-.4483.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5902 8.2439 13.8533 7.8508 12 7.8508s-3.5902.3931-5.1349 1.0986L4.8428 5.4463a.4161.4161 0 00-.5676-.1521.4157.4157 0 00-.1521.5676l1.9973 3.4592C2.6889 11.186.8532 13.8327.8532 17.0682h22.2934c0-3.2355-1.8357-5.8818-4.2667-7.7468"/></svg>';
+            
+            const icons = {
+                'PS5': playstationIcon,
+                'PS4': playstationIcon,
+                'PlayStation 5': playstationIcon,
+                'PlayStation 4': playstationIcon,
+                'PlayStation': playstationIcon,
+                'Nintendo Switch': switchIcon,
+                'Switch': switchIcon,
+                'Xbox Series X/S': xboxIcon,
+                'Xbox Series X': xboxIcon,
+                'Xbox Series S': xboxIcon,
+                'Xbox One': xboxIcon,
+                'Xbox': xboxIcon,
+                'PC': pcIcon,
+                'Windows': pcIcon,
+                'Microsoft Windows': pcIcon,
+                'Mac': macIcon,
+                'macOS': macIcon,
+                'Mac OS': macIcon,
+                'Linux': linuxIcon,
+                'iOS': iosIcon,
+                'iPhone': iosIcon,
+                'iPad': iosIcon,
+                'Android': androidIcon
+            };
+            return icons[platform] || '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 12c0 .38-.21.71-.53.88l-4.71 2.68c-.16.09-.34.14-.53.14-.55 0-1-.45-1-1V9.38c0-.55.45-1 1-1 .19 0 .37.05.53.14l4.71 2.68c.32.17.53.5.53.88zm1.76-6.77l-1.41 1.41C18.11 7.65 19 9.24 19 11c0 1.76-.89 3.35-2.15 4.36l1.41 1.41C19.88 15.22 21 13.24 21 11c0-2.24-1.12-4.22-2.74-5.77zm-10.52 0L3.74 6.23C2.12 7.78 1 9.76 1 11c0 2.24 1.12 4.22 2.74 5.77l1.41-1.41C4.89 14.35 4 12.76 4 11c0-1.76.89-3.35 2.15-4.36z"/></svg>';
+        }
+        
+        function isSVGIcon(icon) {
+            return icon.trim().startsWith('<svg');
+        }
+        
+        // Set platform icons on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.platform-icon-header').forEach(icon => {
+                const platform = icon.getAttribute('data-platform');
+                if (platform) {
+                    const iconContent = getPlatformIcon(platform);
+                    if (isSVGIcon(iconContent)) {
+                        icon.innerHTML = iconContent;
+                    } else {
+                        icon.textContent = iconContent;
+                    }
+                }
+            });
+        });
+        /*]]>*/
+        
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            const viewMode = document.getElementById('viewMode');
+            const editMode = document.getElementById('editMode');
+            const editToggleBtn = document.getElementById('editToggleBtn');
+            const editToggleText = document.getElementById('editToggleText');
+            
+            if (isEditMode) {
+                viewMode.style.display = 'none';
+                editMode.style.display = 'block';
+                editToggleText.textContent = 'Cancel';
+                editToggleBtn.classList.add('active');
+            } else {
+                viewMode.style.display = 'block';
+                editMode.style.display = 'none';
+                editToggleText.textContent = 'Edit';
+                editToggleBtn.classList.remove('active');
+                // Reset form by reloading
+                location.reload();
+            }
+        }
+        
+        function cancelEdit() {
+            isEditMode = false;
+            toggleEditMode();
+        }
+        
+        function saveGameChanges(event) {
+            event.preventDefault();
+            
+            // Collect form data
+            const formData = new FormData();
+            
+            // Status
+            const status = document.getElementById('gameStatus').value;
+            formData.append('status', status);
+            
+            // Engagement Types - send as array (optional, no limit)
+            const engagementTypeCheckboxes = document.querySelectorAll('input[name="engagementTypes"]:checked');
+            engagementTypeCheckboxes.forEach(checkbox => {
+                formData.append('engagementTypes', checkbox.value);
+            });
+            
+            // Platforms
+            const platformCheckboxes = document.querySelectorAll('.platform-selection-option-modern input[type="checkbox"]:checked');
+            platformCheckboxes.forEach(checkbox => {
+                formData.append('platforms', checkbox.value);
+            });
+            
+            // Custom platform - check if it's not already in standard platforms
+            const customPlatform = document.getElementById('customPlatform').value.trim();
+            const standardPlatforms = ['PC', 'PS5', 'PS4', 'Xbox Series X/S', 'Xbox One', 'Nintendo Switch', 'Mac', 'Linux', 'iOS', 'Android'];
+            if (customPlatform && !standardPlatforms.includes(customPlatform)) {
+                formData.append('platforms', customPlatform);
+            }
+            
+            // Format
+            const format = document.querySelector('input[name="format"]:checked');
+            if (format) {
+                formData.append('format', format.value);
+            }
+            
+            // Save all changes at once
+            fetch(`/library/${gameId}/update`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Reload page to show updated data
+                    window.location.reload();
+                } else {
+                    alert('Failed to update game. Please try again.');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating game:', error);
+                alert('Failed to update game. Please try again.');
+            });
+        }
+    </script>
+</body>
+</html>

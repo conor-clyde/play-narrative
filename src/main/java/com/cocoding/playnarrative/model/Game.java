@@ -7,32 +7,46 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Column;
 
 @Entity
 public class Game {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String title;
-    private String rawgId;
-    private boolean owned;
-    private String intent;
-    @ElementCollection
-    private List<String> platforms; // PC, PS5, etc.
+    private String externalId;
 
+    // Display
+    private String title;
+    private String releaseYear;
+    private String imageUrl;
+
+    // Ownership
+    private boolean owned; 
+
+    @ElementCollection
+    private List<String> platforms;
+
+    @Enumerated(EnumType.STRING)
+    private GameFormat format;
+
+    // Play organization
+    @Enumerated(EnumType.STRING)
+    private PlayState playState;
+
+    // Engagement types - multi-select to describe how you engage with the game
+    @ElementCollection
+    @Enumerated(EnumType.STRING)
+    private List<EngagementType> engagementTypes;
+    
+    @Column(length = 1000)
+    private String sessionNotes; // For reflection prompts
 
     // Default constructor (required by JPA)
-    public Game() {}
-
-    // Constructor with parameters
-    public Game(String title, String rawgId, boolean owned, String intent, List<String> platforms) {
-        this.title = title;
-        this.rawgId = rawgId;
-        this.owned = owned;
-        this.intent = intent;
-        this.platforms = platforms;
-
-
+    public Game() {
     }
 
     // Getters and Setters
@@ -51,29 +65,29 @@ public class Game {
     public void setTitle(String title) {
         this.title = title;
     }
-    
-    public String getRawgId() {
-        return rawgId;
+
+    public String getReleaseYear() {
+        return releaseYear;
     }
 
-    public void setRawgId(String rawgId) {
-        this.rawgId = rawgId;
+    public void setReleaseYear(String releaseYear) {
+        this.releaseYear = releaseYear;
     }
-    
-    public boolean isOwned() {
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
+    public boolean getOwned() {
         return owned;
     }
 
     public void setOwned(boolean owned) {
         this.owned = owned;
-    }
-
-    public String getIntent() {
-        return intent;
-    }
-
-    public void setIntent(String intent) {
-        this.intent = intent;
     }
 
     public List<String> getPlatforms() {
@@ -83,15 +97,57 @@ public class Game {
     public void setPlatforms(List<String> platforms) {
         this.platforms = platforms;
     }
+
+    public GameFormat getFormat() {
+        return format;
+    }
+
+    public void setFormat(GameFormat format) {
+        this.format = format;
+    }
+
+    public PlayState getPlayState() {
+        return playState;
+    }
+
+    public void setPlayState(PlayState playState) {
+        this.playState = playState;
+    }
+
+    public String getExternalId() {
+        return externalId;
+    }
+
+    public void setExternalId(String externalId) {
+        this.externalId = externalId;
+    }
+
+    public List<EngagementType> getEngagementTypes() {
+        return engagementTypes;
+    }
+
+    public void setEngagementTypes(List<EngagementType> engagementTypes) {
+        this.engagementTypes = engagementTypes;
+    }
+
+    public String getSessionNotes() {
+        return sessionNotes;
+    }
+
+    public void setSessionNotes(String sessionNotes) {
+        this.sessionNotes = sessionNotes;
+    }
+
     @Override
     public String toString() {
         return "Game{" +
                 "id=" + id +
                 ", title='" + title + '\'' +
-                ", rawgId='" + rawgId + '\'' +
-                ", owned='" + owned + '\'' +
-                ", intent='" + intent + '\'' +
-                ", platforms='" + platforms + '\'' +
+                ", releaseYear='" + releaseYear + '\'' +
+                ", owned=" + owned +
+                ", playState=" + playState +
+                ", engagementTypes=" + engagementTypes +
+                ", externalId=" + externalId +
                 '}';
     }
 }

@@ -1,28 +1,2236 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
-    <title>Game Library</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Library - PlayNarrative</title>
+    <link rel="stylesheet" href="/css/style.css">
     <style>
-        body { font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }
-        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
-        ul { list-style: none; padding: 0; }
-        li { background: #ecf0f1; margin: 10px 0; padding: 15px; border-radius: 5px; border-left: 4px solid #3498db; }
-        a { display: inline-block; background: #3498db; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-top: 20px; }
-        a:hover { background: #2980b9; }
+        #librarySearchInput::placeholder {
+            color: var(--text-muted);
+        }
+        .library-section-title.currently-enjoying-title {
+            background: linear-gradient(to right, #fb923c, #c084fc, #60a5fa);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
+            animation: gradient-shift 3s ease infinite;
+        }
+        @keyframes gradient-shift {
+            0%, 100% {
+                background-position: 0% center;
+            }
+            50% {
+                background-position: 100% center;
+            }
+        }
+        .hidden {
+            display: none !important;
+        }
+        /* Tab styling - page heading style */
+        .library-tab-switcher {
+            display: flex;
+            gap: 2.5rem;
+            margin: 0;
+            padding: 0;
+            border-bottom: none;
+            align-items: baseline;
+            flex: 1;
+        }
+        .library-page-actions {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            margin-bottom: 0;
+            padding-bottom: 0;
+            gap: 1rem;
+            border-bottom: none;
+        }
+        .library-main-tab {
+            padding: 0;
+            border: none;
+            background: transparent;
+            font-weight: 700;
+            line-height: 1.2;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            text-align: left;
+        }
+        .library-main-tab.active {
+            font-size: 1.875rem;
+            background: linear-gradient(to right, #fb923c, #c084fc, #60a5fa);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradient-shift 3s ease infinite;
+            text-shadow: 0 0 30px rgba(251, 146, 60, 0.3), 0 0 50px rgba(192, 132, 252, 0.2), 0 0 70px rgba(96, 165, 250, 0.15);
+        }
+        .library-main-tab:not(.active) {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            opacity: 0.6;
+            font-weight: 500;
+        }
+        .library-main-tab:not(.active):hover {
+            opacity: 0.8;
+            color: var(--text-secondary);
+            font-size: 1.375rem;
+        }
+        /* Two-column layout matching mockup */
+        .library-main-layout {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            gap: 2.5rem;
+            margin: 0;
+            align-items: start;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            margin-top: 0;
+        }
+        /* Left column - Sidebar with filters */
+        .library-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 2.5rem;
+            position: sticky;
+            top: 100px;
+            align-self: start;
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
+            padding-right: 1rem;
+        }
+        .library-sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .library-sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .library-sidebar::-webkit-scrollbar-thumb {
+            background: rgba(100, 116, 139, 0.3);
+            border-radius: 3px;
+        }
+        .library-sidebar::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 116, 139, 0.5);
+        }
+        /* Engagement type section - condensed like image */
+        .engagement-type-section {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .engagement-type-section-title {
+            font-size: 0.625rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.375rem;
+        }
+        .engagement-type-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+        .engagement-type-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.375rem 0.625rem;
+            padding-left: 1rem;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-radius: 0.25rem;
+            margin-bottom: 0.0625rem;
+        }
+        .engagement-type-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 45%;
+            border-radius: 0 2px 2px 0;
+            transition: all 0.2s ease;
+        }
+        .engagement-type-item[data-type="all"]::before {
+            background: #fb923c;
+        }
+        .engagement-type-item[data-type="STORY"]::before {
+            background: #8b5cf6;
+        }
+        .engagement-type-item[data-type="COMPLETION"]::before {
+            background: #c084fc;
+        }
+        .engagement-type-item[data-type="ONLINE_MP"]::before {
+            background: #22c55e;
+        }
+        .engagement-type-item[data-type="COZY_LIFE_SIM"]::before {
+            background: #eab308;
+        }
+        .engagement-type-item:hover {
+            background: rgba(100, 116, 139, 0.06);
+        }
+        .engagement-type-item.active {
+            background: rgba(100, 116, 139, 0.15);
+            border-radius: 0.375rem;
+        }
+        .engagement-type-item.active::before {
+            height: 65%;
+            width: 4px;
+        }
+        .engagement-type-label {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        .engagement-type-count {
+            font-size: 0.6875rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            padding: 0.125rem 0.375rem;
+            background: rgba(100, 116, 139, 0.2);
+            border-radius: 0.375rem;
+            min-width: 1.5rem;
+            text-align: center;
+        }
+        .engagement-type-item.active .engagement-type-count {
+            background: rgba(100, 116, 139, 0.3);
+        }
+        /* Right column - Main content */
+        .library-main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            width: 100%;
+            min-width: 0;
+        }
+        .library-content-header {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            gap: 1rem;
+        }
+        /* Responsive adjustments */
+        @media (max-width: 1200px) {
+            .library-main-layout {
+                grid-template-columns: 280px 1fr;
+                gap: 2rem;
+            }
+        }
+        @media (max-width: 968px) {
+            .library-main-layout {
+                grid-template-columns: 1fr;
+            }
+            .library-sidebar {
+                position: relative;
+                top: 0;
+                max-height: none;
+                margin-bottom: 2rem;
+            }
+        }
+        /* Greeting Card */
+        .greeting-card {
+            background: var(--bg-secondary);
+            border: 1px solid rgba(100, 116, 139, 0.2);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .greeting-title {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.75rem;
+            line-height: 1.3;
+        }
+        .greeting-text {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+        .greeting-divider {
+            height: 1px;
+            background: rgba(100, 116, 139, 0.2);
+            margin: 1rem 0;
+        }
+        .greeting-philosophy {
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            font-style: italic;
+        }
+        .engagement-section-item {
+            padding: 1rem 1.25rem;
+            border: 1px solid rgba(100, 116, 139, 0.2);
+            border-radius: 0.75rem;
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            text-align: left;
+        }
+        .engagement-section-item:hover {
+            background: rgba(100, 116, 139, 0.1);
+            border-color: rgba(100, 116, 139, 0.3);
+            transform: translateY(-2px);
+        }
+        .engagement-section-item.active {
+            background: rgba(255, 125, 0, 0.1);
+            border-color: rgba(255, 125, 0, 0.3);
+        }
+        .engagement-type-icon {
+            font-size: 1.25rem;
+            margin-right: 0.5rem;
+        }
+        .engagement-type-description {
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+        .engagement-type-name {
+            font-size: 0.9375rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+        }
+        .engagement-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+        }
+        .engagement-section-label {
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+        .engagement-section-label-type {
+            font-size: 0.875rem;
+            font-weight: inherit;
+            color: inherit;
+        }
+        .engagement-section-count {
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            padding: 0.25rem 0.5rem;
+            background: rgba(100, 116, 139, 0.15);
+            border-radius: 0.375rem;
+            min-width: 2rem;
+            text-align: center;
+        }
+        .engagement-section-item.active .engagement-section-count {
+            background: rgba(100, 116, 139, 0.25);
+            color: var(--text-primary);
+        }
+        .engagement-section-item-all {
+            display: none; /* Hide "All" button in left sidebar */
+        }
+        /* Games grid container */
+        .games-grid-container {
+            width: 100%;
+        }
+        .explore-more-games-row {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1.25rem;
+            padding: 0;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        .games-view-all {
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        .explore-more-games-row > * {
+            min-width: 0;
+            max-width: 100%;
+            width: 100%;
+        }
+        /* Reflection & Narrative Elements */
+        .game-card-reflection-badge {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: rgba(192, 132, 252, 0.9);
+            color: #ffffff;
+            padding: 0.375rem 0.625rem;
+            border-radius: 0.375rem;
+            font-size: 0.6875rem;
+            font-weight: 600;
+            letter-spacing: 0.025em;
+            text-transform: uppercase;
+            z-index: 2;
+            box-shadow: 0 2px 8px rgba(192, 132, 252, 0.3);
+        }
+        .game-card-reflection-preview {
+            margin-top: 0.5rem;
+            padding: 0.75rem;
+            background: rgba(192, 132, 252, 0.1);
+            border-left: 3px solid rgba(192, 132, 252, 0.6);
+            border-radius: 0.5rem;
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            font-style: italic;
+            max-height: 4rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            position: relative;
+        }
+        .game-card-reflection-preview::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 1rem;
+            background: linear-gradient(to bottom, transparent, rgba(192, 132, 252, 0.1));
+        }
+        .game-card-intentional-prompt {
+            margin-top: 0.75rem;
+            padding: 0.75rem;
+            background: rgba(255, 125, 0, 0.05);
+            border: 1px dashed rgba(255, 125, 0, 0.3);
+            border-radius: 0.5rem;
+            font-size: 0.8125rem;
+            color: var(--text-muted);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .game-card-intentional-prompt:hover {
+            background: rgba(255, 125, 0, 0.1);
+            border-color: rgba(255, 125, 0, 0.5);
+            color: var(--text-secondary);
+        }
+        .quick-log-btn:hover {
+            background: rgba(255, 125, 0, 0.25) !important;
+            border-color: rgba(255, 125, 0, 0.5) !important;
+            transform: translateY(-1px);
+        }
+        .quick-reflection-btn:hover {
+            background: rgba(192, 132, 252, 0.25) !important;
+            border-color: rgba(192, 132, 252, 0.5) !important;
+            transform: translateY(-1px);
+        }
+        .explore-more-games-container {
+            width: 100%;
+        }
+        /* Engagement type colors - removed colorful borders, using subtle theme */
+        /* Ensure consistent spacing between library and wishlist views */
+        #libraryView, #wishlistView {
+            margin: 0;
+            padding: 0;
+        }
+        #libraryView > .library-section:first-child,
+        #wishlistView > .library-section:first-child {
+            margin-top: 0;
+            padding-top: 0;
+        }
+        #libraryView > .library-section:first-child .library-section-header,
+        #wishlistView > .library-section:first-child .library-section-header {
+            margin-top: 0;
+            padding-top: 0;
+        }
+        /* Page actions styling handled above */
+        /* Remove border from section headers in currently playing view */
+        #libraryView > .library-section:first-child .library-section-header,
+        #wishlistView > .library-section:first-child .library-section-header {
+            border-bottom: none !important;
+            padding-bottom: 0 !important;
+        }
+        /* Remove dividers between sections */
+        .library-section {
+            border-top: none !important;
+        }
+        /* Currently Playing section styling - within container */
+        #libraryView > .library-section:first-child {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            max-width: 100%;
+        }
+        #libraryView > .library-section:first-child .currently-playing-container {
+            width: 100%;
+            max-width: 100%;
+        }
+        #currentlyPlayingView {
+            width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        /* Make Explore More and other secondary sections less prominent */
+        .library-section-secondary {
+            margin-top: 0;
+            margin-bottom: 3rem;
+        }
+        .library-section-secondary .library-section-header {
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid rgba(100, 116, 139, 0.2);
+        }
+        .library-section-secondary .library-section-title {
+            font-size: 1.25rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: color 0.2s ease;
+        }
+        .library-section-secondary .library-section-title:hover {
+            color: var(--text-primary);
+        }
+        /* Add subtle spacing between sections without dividers */
+        #libraryView > .library-section:not(:first-child) {
+            margin-top: 3.5rem;
+        }
+        /* Section headers with consistent spacing for secondary sections */
+        .library-section-secondary .library-section-header {
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid rgba(100, 116, 139, 0.2);
+        }
+        /* Full page layout for Currently Playing - within container */
+        .main-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1.5rem 2rem 2rem 2rem;
+            background: #1a1d29;
+        }
+        .library-page-actions {
+            max-width: 100%;
+            margin: 0 0 0 0;
+            padding: 0;
+            border-bottom: none;
+        }
+        #libraryView {
+            width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        /* Currently playing view within container */
+        #currentlyPlayingView {
+            width: 100%;
+            max-width: 100%;
+        }
+        /* Enhanced empty states */
+        .empty-state {
+            padding: 3rem 2rem;
+            text-align: center;
+            border-radius: 1rem;
+            background: rgba(45, 38, 59, 0.3);
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+        .empty-state:hover {
+            background: rgba(45, 38, 59, 0.4);
+            border-color: var(--primary-color);
+        }
+        .empty-icon {
+            margin-bottom: 1rem;
+            opacity: 0.8;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        .empty-state:hover .empty-icon {
+            transform: scale(1.1);
+            opacity: 1;
+        }
+        .empty-title {
+            color: var(--text-primary) !important;
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        .empty-text {
+            color: var(--text-secondary) !important;
+            font-size: 0.9375rem;
+            line-height: 1.6;
+        }
+        /* Ensure color scheme consistency */
+        .library-section-title-secondary {
+            color: var(--text-secondary) !important;
+        }
+        .empty-title {
+            color: var(--text-primary) !important;
+        }
+        .empty-text {
+            color: var(--text-secondary) !important;
+        }
+        /* Fix floating add button readability */
+        .floating-add-game-btn {
+            background: var(--primary-color) !important;
+            color: #ffffff !important;
+            border: 2px solid var(--primary-color) !important;
+            box-shadow: 0 4px 16px rgba(255, 125, 0, 0.4) !important;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+        .floating-add-game-btn svg {
+            stroke: #ffffff !important;
+            transition: transform 0.3s ease !important;
+        }
+        .floating-add-game-btn:hover {
+            background: #ff8c1a !important;
+            border-color: #ff8c1a !important;
+            box-shadow: 0 8px 24px rgba(255, 125, 0, 0.5) !important;
+            transform: translateY(-2px) scale(1.05) !important;
+        }
+        .floating-add-game-btn:hover svg {
+            stroke: #ffffff !important;
+            transform: rotate(90deg) !important;
+        }
+        .floating-add-game-btn:active {
+            transform: translateY(0) scale(1) !important;
+        }
+        .floating-add-game-btn .floating-btn-text {
+            color: #ffffff !important;
+        }
+        /* Enhanced sort and filter buttons */
+        .library-action-btn {
+            transition: all 0.2s ease;
+            min-height: 2.5rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.625rem 1.25rem;
+            font-size: 0.9375rem;
+            font-weight: 500;
+        }
+        .library-action-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+        .library-action-btn:active {
+            transform: translateY(0);
+        }
+        /* Game card styling - Clean and professional matching image */
+        .game-card-compact {
+            width: 100%;
+            min-width: 0;
+            max-width: 100%;
+            display: flex;
+            flex-direction: column;
+            background: transparent;
+            border-radius: 0.5rem;
+            border: none;
+            overflow: visible;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            position: relative;
+            box-sizing: border-box;
+        }
+        .game-card-compact:hover {
+            transform: translateY(-2px);
+        }
+        .currently-playing-game {
+            background: transparent;
+        }
+        .game-card-compact-cover {
+            position: relative;
+            width: 100%;
+            padding-bottom: 133.33%; /* 3:4 aspect ratio (4/3 = 1.333) */
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .game-card-compact-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .game-card-compact-info {
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            flex: 1;
+        }
+        .game-card-compact-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            line-height: 1.4;
+            margin: 0;
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+        }
+        .game-title-text {
+            flex: 1;
+        }
+        .game-card-compact-year {
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            opacity: 0.7;
+        }
+        .game-card-compact-platform-bar {
+            display: flex;
+            gap: 0.375rem;
+            margin-bottom: 0;
+            padding: 0.375rem 0.625rem;
+            background: linear-gradient(to right, #fb923c, #c084fc, #60a5fa);
+            backdrop-filter: blur(4px);
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1;
+            border-radius: 0.5rem 0.5rem 0 0;
+        }
+        /* Fade-in animation for sections */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .library-section {
+            animation: fadeInUp 0.6s ease-out;
+        }
+        .library-section-secondary {
+            animation: fadeInUp 0.6s ease-out 0.1s both;
+        }
+        /* Enhanced search bar focus state */
+        #librarySearchInput:focus {
+            transform: scale(1.01);
+        }
+        /* Smooth transitions for all interactive elements */
+        .library-action-btn,
+        .library-action-btn-primary,
+        .btn {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        /* Engagement type section styling */
+        .engagement-type-section {
+            padding: 1.5rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .engagement-type-section:last-child {
+            border-bottom: none;
+        }
+        .engagement-type-title {
+            transition: color 0.2s ease;
+        }
+        .engagement-type-toggle {
+            transition: all 0.2s ease;
+        }
+        .engagement-type-toggle:hover {
+            transform: translateY(-1px);
+        }
+        .game-card-with-metadata {
+            position: relative;
+        }
+        .game-card-metadata {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .game-metadata-item {
+            display: flex;
+            align-items: baseline;
+            gap: 0.375rem;
+        }
+        /* Enhanced game card styling */
+        .game-card-enhanced {
+            background: var(--bg-secondary);
+            border-radius: 0.75rem;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+        .game-card-enhanced:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            border-color: var(--primary-color);
+        }
+        .game-card-enhanced-inner {
+            display: flex;
+            flex-direction: column;
+        }
+        .game-card-enhanced-content {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem;
+        }
+        .game-card-enhanced-cover {
+            flex-shrink: 0;
+            width: 120px;
+            height: 160px;
+            position: relative;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.2);
+        }
+        .game-card-enhanced-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            min-width: 0;
+        }
+        .game-card-enhanced-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.5rem;
+        }
+        .game-card-enhanced-header .game-card-compact-title {
+            margin: 0;
+            flex: 1;
+        }
+        .reflection-prompt-btn {
+            flex-shrink: 0;
+        }
+        .game-card-metadata-rich {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .metadata-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .metadata-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+        .metadata-item svg {
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+        .metadata-label {
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+        .metadata-value {
+            color: var(--text-primary);
+            font-weight: 400;
+        }
+        .mood-badge, .engagement-tag-badge {
+            display: inline-block;
+            padding: 0.125rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            background: rgba(255, 125, 0, 0.15);
+            color: var(--primary-color);
+            border: 1px solid rgba(255, 125, 0, 0.3);
+        }
+        .mood-relaxing {
+            background: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
+            border-color: rgba(34, 197, 94, 0.3);
+        }
+        .mood-energizing {
+            background: rgba(251, 146, 60, 0.15);
+            color: #fb923c;
+            border-color: rgba(251, 146, 60, 0.3);
+        }
+        .mood-focused {
+            background: rgba(96, 165, 250, 0.15);
+            color: #60a5fa;
+            border-color: rgba(96, 165, 250, 0.3);
+        }
+        .mood-casual {
+            background: rgba(192, 132, 252, 0.15);
+            color: #c084fc;
+            border-color: rgba(192, 132, 252, 0.3);
+        }
+        .mood-social {
+            background: rgba(236, 72, 153, 0.15);
+            color: #ec4899;
+            border-color: rgba(236, 72, 153, 0.3);
+        }
+        .tag-story {
+            background: rgba(139, 92, 246, 0.15);
+            color: #8b5cf6;
+            border-color: rgba(139, 92, 246, 0.3);
+        }
+        .tag-skill {
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+        .tag-exploration {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+        .tag-social {
+            background: rgba(236, 72, 153, 0.15);
+            color: #ec4899;
+            border-color: rgba(236, 72, 153, 0.3);
+        }
+        .tag-creative {
+            background: rgba(251, 146, 60, 0.15);
+            color: #fb923c;
+            border-color: rgba(251, 146, 60, 0.3);
+        }
+        .game-card-actions {
+            margin-top: auto;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--border-color);
+        }
+        .play-next-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.625rem 1rem;
+            background: var(--primary-color);
+            color: #ffffff;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            width: 100%;
+            justify-content: center;
+        }
+        .play-next-btn:hover {
+            background: #ff8c1a;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(255, 125, 0, 0.4);
+        }
+        .play-next-btn:active {
+            transform: translateY(0);
+        }
+        .play-next-btn svg {
+            flex-shrink: 0;
+        }
+        /* Responsive adjustments for grid - 7 games per row on full screen */
+        @media (min-width: 1920px) {
+            .explore-more-games-row {
+                grid-template-columns: repeat(7, 1fr);
+                gap: 1.25rem;
+            }
+        }
+        @media (max-width: 1600px) {
+            .explore-more-games-row {
+                grid-template-columns: repeat(6, 1fr);
+                gap: 1.25rem;
+            }
+        }
+        @media (max-width: 1366px) {
+            .explore-more-games-row {
+                grid-template-columns: repeat(5, 1fr);
+                gap: 1.25rem;
+            }
+        }
+        @media (max-width: 1024px) {
+            .explore-more-games-row {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 1rem;
+            }
+        }
+        @media (max-width: 768px) {
+            .explore-more-games-row {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 1rem;
+            }
+        }
+        @media (max-width: 480px) {
+            .explore-more-games-row {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.75rem;
+            }
+        }
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .game-card-enhanced-content {
+                flex-direction: column;
+            }
+            .game-card-enhanced-cover {
+                width: 100%;
+                height: 200px;
+            }
+            .library-main-layout {
+                grid-template-columns: 1fr;
+            }
+            .library-sidebar {
+                position: relative;
+                margin-bottom: 1.5rem;
+                max-height: none;
+            }
+            .greeting-card {
+                margin-bottom: 1rem;
+            }
+            .engagement-section-item {
+                font-size: 0.8125rem;
+                padding: 0.75rem 1rem;
+            }
+            .currently-playing-games-list {
+                padding: 0;
+            }
+            .explore-more-games-row {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+            }
+            .library-page-actions {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+                padding-bottom: 1.25rem;
+            }
+            .library-actions-right {
+                width: 100%;
+                justify-content: flex-start;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🎮 Game Library</h1>
+    <!-- Header -->
+    <div th:replace="~{fragments/header :: header}"></div>
 
-        <ul>
-            <li th:each="game : ${games}" th:text="${game.title} + ' (' + ${game.genre} + ')'"></li>
-        </ul>
+    <!-- Main Content -->
+    <main class="main-content" style="min-height: 100vh; padding: 2rem;">
+        <!-- Post-Add Confirmation Message -->
+        <div id="addGameSuccessMessage" class="add-game-success-message" style="display: none; margin-bottom: 2rem; padding: 1rem 1.5rem; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 0.75rem; color: #86efac;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <span style="font-size: 1.25rem;">✓</span>
+                    <div>
+                        <strong id="successMessageTitle" style="display: block; margin-bottom: 0.25rem;">Game added to library</strong>
+                        <p id="successMessageText" style="margin: 0; font-size: 0.875rem; opacity: 0.9;">You can always start playing later — this just saves it.</p>
+                    </div>
+                </div>
+                <button onclick="closeSuccessMessage()" style="background: none; border: none; color: inherit; cursor: pointer; padding: 0.25rem; font-size: 1.25rem; line-height: 1; opacity: 0.7; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">×</button>
+            </div>
+        </div>
+        <!-- Library View -->
+        <div id="libraryView" th:classappend="${view == 'wishlist'} ? 'hidden' : ''" style="margin: 0; padding: 0; min-height: 200px;">
+        
+        <!-- Currently Playing View (Default) -->
+        <div id="currentlyPlayingView" class="library-tab-content" style="display: block; width: 100%; margin: 0; padding: 0;">
+        <!-- Currently Enjoying Section -->
+        <section class="library-section" style="margin: 0; padding: 0; width: 100%; max-width: 100%;">
+            <div th:if="${currentlyPlaying == null or currentlyPlaying.isEmpty()}" class="empty-state" style="display: block !important; visibility: visible !important;">
+                <div class="empty-icon" style="font-size: 3rem; background: transparent; border: none; width: auto; height: auto;">🎮</div>
+                <h3 class="empty-title">No games currently playing</h3>
+                <p class="empty-text">Start playing a game from your library to see it here</p>
+                <a href="/library" class="btn btn-primary" style="margin-top: 1rem; text-decoration: none; display: inline-block;">
+                    Browse Library
+                </a>
+            </div>
+            
+            <div th:if="${currentlyPlaying != null and !currentlyPlaying.isEmpty()}">
+                <!-- Two-column layout matching mockup -->
+                <div class="library-main-layout">
+                    <!-- Left Column: Sidebar -->
+                    <div class="library-sidebar" id="engagementSections">
+                        <!-- Engagement Type Section -->
+                        <div class="engagement-type-section">
+                            <div class="engagement-type-section-title">ENGAGEMENT TYPE</div>
+                            <div class="engagement-type-list">
+                                <div class="engagement-type-item active" data-type="all" onclick="filterByEngagementType(this.getAttribute('data-type'))">
+                                    <span class="engagement-type-label">All</span>
+                                    <span class="engagement-type-count" id="count-all" th:text="${currentlyPlaying != null ? currentlyPlaying.size() : 0}">0</span>
+                                </div>
+                                <div th:each="engagementType : ${engagementTypes}"
+                                     class="engagement-type-item"
+                                     th:attr="data-type=${engagementType.name()}"
+                                     onclick="filterByEngagementType(this.getAttribute('data-type'))">
+                                    <span class="engagement-type-label" th:text="${engagementType.displayName}">Story</span>
+                                    <span class="engagement-type-count" 
+                                          th:attr="id='count-' + ${engagementType.name()}">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Right Column: Main Content -->
+                    <div class="library-main-content">
+                        <!-- Header with Tabs and Buttons on Same Line -->
+                        <div class="library-content-header">
+                            <div th:if="${view != 'wishlist'}" class="library-tab-switcher">
+                                <button class="library-main-tab active" 
+                                        id="tabCurrentlyPlaying"
+                                        onclick="switchLibraryTab('playing')">
+                                    Currently Playing
+                                </button>
+                                <button class="library-main-tab" 
+                                        id="tabExploreMore"
+                                        onclick="switchLibraryTab('explore')">
+                                    All Games
+                                </button>
+                            </div>
+                            <div class="library-actions-right" style="display: flex; gap: 0.75rem; align-items: center; margin-left: auto;">
+                                <!-- Add Game Button -->
+                                <a href="/library/add" class="library-action-btn library-action-btn-primary" style="text-decoration: none;">
+                                    <span style="font-size: 1rem; line-height: 1; display: inline-flex; align-items: center; margin-right: 0.5rem;">+</span>
+                                    <span>Add Game</span>
+                                </a>
+                                
+                                <!-- Toggle Button: Wishlist or Library -->
+                                <a th:href="${view == 'wishlist' ? '/library' : '/library?view=wishlist'}" 
+                                   class="library-action-btn library-action-btn-toggle" 
+                                   style="text-decoration: none; min-width: auto; width: auto;"
+                                   th:text="${view == 'wishlist' ? 'Library' : 'Wishlist'}">
+                                    Wishlist
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <!-- Games Grid -->
+                        <div class="games-grid-container">
+                            <div class="explore-more-games-row" id="gamesGrid">
+                                <!-- Games will be populated here by JavaScript based on filter -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        </div>
 
-        <p th:if="${#lists.isEmpty(games)}">No games in your library yet. <a href="/games/add">Add your first game!</a></p>
+        <!-- Hidden container for all games - JavaScript will distribute them to grid -->
+        <div id="allGamesView" class="games-view-all" style="position: fixed; left: 0; top: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; z-index: -1;">
+            <div class="explore-more-games-row">
+                <div th:each="game : ${currentlyPlaying}" 
+                     class="game-card-compact currently-playing-game"
+                     th:attr="data-primary-engagement-type=${game.engagementTypes != null and !game.engagementTypes.isEmpty() ? game.engagementTypes[0].name() : 'none'}, data-game-id=${game.id}, data-engagement-types=${game.engagementTypes != null ? #strings.listJoin(game.engagementTypes.![name()], ',') : ''}"
+                     onclick="window.location.href='/library/' + this.getAttribute('data-game-id')">
+                        <!-- Platform Bar - Above Cover -->
+                        <div class="game-card-compact-platform-bar" th:if="${game.platforms != null and !game.platforms.isEmpty()}">
+                            <th:block th:each="platform : ${game.platforms}">
+                                <span class="platform-bar-icon-compact" th:data-platform="${platform}">
+                                    <img th:if="${platform == 'Nintendo Switch'}" src="/images/nintendo-switch-logo.svg" alt="Switch">
+                                    <img th:if="${platform == 'PC'}" src="/images/pc-logo.svg" alt="PC">
+                                    <img th:if="${platform == 'PlayStation 5' or platform == 'PS5' or platform == 'PlayStation 4' or platform == 'PS4'}" src="/images/playstation-logo.svg" alt="PlayStation">
+                                    <img th:if="${platform == 'Xbox Series X/S' or platform == 'Xbox One' or platform == 'Xbox'}" src="/images/xbox-logo.svg" alt="Xbox">
+                                </span>
+                            </th:block>
+                        </div>
+                        <div class="game-card-compact-cover">
+                            <!-- Game Cover Image -->
+                            <img th:if="${game.imageUrl != null and !game.imageUrl.isEmpty()}" 
+                                 th:src="${game.imageUrl}" 
+                                 th:alt="${game.title}"
+                                 class="game-card-compact-image"
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div class="game-card-compact-placeholder" style="display: none;">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect>
+                                    <polyline points="17 2 12 7 7 2"></polyline>
+                                </svg>
+                            </div>
+                            
+                            <!-- Hover Overlay -->
+                            <div class="game-card-compact-overlay">
+                                <div class="game-card-compact-overlay" style="flex-direction: column; gap: 0.5rem;">
+                                    <!-- Quick State Change Buttons -->
+                                    <div style="display: flex; flex-direction: column; gap: 0.375rem; width: 100%; max-width: 140px;">
+                                        <form th:action="@{/library/{id}/state(id=${game.id}, state='NOT_STARTED')}" method="post" style="margin: 0;" th:if="${game.playState == null or game.playState.name() != 'NOT_STARTED'}" onclick="event.stopPropagation();">
+                                            <button type="submit" class="game-card-compact-btn-secondary" style="width: 100%; font-size: 0.75rem; padding: 0.5rem;">
+                                                Not Started
+                                            </button>
+                                        </form>
+                                        <form th:action="@{/library/{id}/state(id=${game.id}, state='PLAYING')}" method="post" style="margin: 0;" th:if="${game.playState == null or game.playState.name() != 'PLAYING'}" onclick="event.stopPropagation();">
+                                            <button type="submit" class="game-card-compact-btn-primary btn-primary" style="width: 100%; font-size: 0.75rem; padding: 0.5rem;">
+                                                Playing
+                                            </button>
+                                        </form>
+                                        <form th:action="@{/library/{id}/state(id=${game.id}, state='FINISHED')}" method="post" style="margin: 0;" th:if="${game.playState == null or game.playState.name() != 'FINISHED'}" onclick="event.stopPropagation();">
+                                            <button type="submit" class="game-card-compact-btn-secondary" style="width: 100%; font-size: 0.75rem; padding: 0.5rem; background: rgba(34, 197, 94, 0.9) !important; border-color: rgba(34, 197, 94, 1) !important;">
+                                                Finished
+                                            </button>
+                                        </form>
+                                    </div>
+                                    <a th:href="@{/library/{id}(id=${game.id})}" 
+                                       class="game-card-compact-details-btn"
+                                       onclick="event.stopPropagation();">
+                                        View Details
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Game Info - Just Title -->
+                        <div class="game-card-compact-info">
+                            <h3 class="game-card-compact-title">
+                                <span class="game-title-text" th:text="${game.title}">Game Title</span>
+                            </h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-        <a href="/games/add">➕ Add New Game</a>
-    </div>
+        <!-- Explore More View (All Games) -->
+        <div id="exploreMoreView" class="library-tab-content" style="display: none;">
+            <section class="library-section" style="margin: 0; padding: 0; width: 100%; max-width: 100%;">
+            <div th:if="${exploreNext == null or exploreNext.isEmpty()}" class="empty-state" style="display: block !important; visibility: visible !important;">
+                <div class="empty-icon" style="font-size: 3rem; background: transparent; border: none; width: auto; height: auto;">🎮</div>
+                <h3 class="empty-title">No games in library</h3>
+                <p class="empty-text">Add games to your library to see them here</p>
+                <a href="/library/add" class="btn btn-primary" style="margin-top: 1rem; text-decoration: none; display: inline-block;">
+                    <span style="font-size: 1.125rem; line-height: 1;">+</span> Add Game
+                </a>
+            </div>
+            
+            <div th:if="${exploreNext != null and !exploreNext.isEmpty()}">
+                <!-- Two-column layout matching Currently Playing -->
+                <div class="library-main-layout">
+                    <!-- Left Column: Sidebar -->
+                    <div class="library-sidebar" id="engagementSectionsAllGames">
+                        <!-- Engagement Type Section -->
+                        <div class="engagement-type-section">
+                            <div class="engagement-type-section-title">ENGAGEMENT TYPE</div>
+                            <div class="engagement-type-list">
+                                <div class="engagement-type-item active" data-type="all" onclick="filterByEngagementTypeAllGames(this.getAttribute('data-type'))">
+                                    <span class="engagement-type-label">All</span>
+                                    <span class="engagement-type-count" id="count-all-allgames" th:text="${exploreNext != null ? exploreNext.size() : 0}">0</span>
+                                </div>
+                                <div th:each="engagementType : ${engagementTypes}"
+                                     class="engagement-type-item"
+                                     th:attr="data-type=${engagementType.name()}"
+                                     onclick="filterByEngagementTypeAllGames(this.getAttribute('data-type'))">
+                                    <span class="engagement-type-label" th:text="${engagementType.displayName}">Story</span>
+                                    <span class="engagement-type-count" 
+                                          th:attr="id='count-allgames-' + ${engagementType.name()}">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Right Column: Main Content -->
+                    <div class="library-main-content">
+                        <!-- Header with Tabs and Buttons on Same Line -->
+                        <div class="library-content-header">
+                            <div class="library-tab-switcher">
+                                <button class="library-main-tab" 
+                                        id="tabCurrentlyPlayingAllGames"
+                                        onclick="switchLibraryTab('playing')">
+                                    Currently Playing
+                                </button>
+                                <button class="library-main-tab active" 
+                                        id="tabExploreMoreAllGames"
+                                        onclick="switchLibraryTab('explore')">
+                                    All Games
+                                </button>
+                            </div>
+                            <div class="library-actions-right" style="display: flex; gap: 0.75rem; align-items: center; margin-left: auto;">
+                                <!-- Add Game Button -->
+                                <a href="/library/add" class="library-action-btn library-action-btn-primary" style="text-decoration: none;">
+                                    <span style="font-size: 1rem; line-height: 1; display: inline-flex; align-items: center; margin-right: 0.5rem;">+</span>
+                                    <span>Add Game</span>
+                                </a>
+                                
+                                <!-- Toggle Button: Wishlist or Library -->
+                                <a th:href="${view == 'wishlist' ? '/library' : '/library?view=wishlist'}" 
+                                   class="library-action-btn library-action-btn-toggle" 
+                                   style="text-decoration: none; min-width: auto; width: auto;"
+                                   th:text="${view == 'wishlist' ? 'Library' : 'Wishlist'}">
+                                    Wishlist
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <!-- Games Grid -->
+                        <div class="games-grid-container">
+                            <div class="explore-more-games-row" id="gamesGridAllGames">
+                                <div th:each="game : ${exploreNext}" 
+                                     class="game-card-compact"
+                                     th:attr="data-game-id=${game.id}, data-engagement-types=${game.engagementTypes != null ? #strings.listJoin(game.engagementTypes.![name()], ',') : ''}"
+                                     onclick="window.location.href='/library/' + this.getAttribute('data-game-id')">
+                                    <!-- Platform Bar - Above Cover -->
+                                    <div class="game-card-compact-platform-bar" th:if="${game.platforms != null and !game.platforms.isEmpty()}">
+                                        <th:block th:each="platform : ${game.platforms}">
+                                            <span class="platform-bar-icon-compact" th:data-platform="${platform}">
+                                                <img th:if="${platform == 'Nintendo Switch'}" src="/images/nintendo-switch-logo.svg" alt="Switch">
+                                                <img th:if="${platform == 'PC'}" src="/images/pc-logo.svg" alt="PC">
+                                                <img th:if="${platform == 'PlayStation 5' or platform == 'PS5' or platform == 'PlayStation 4' or platform == 'PS4'}" src="/images/playstation-logo.svg" alt="PlayStation">
+                                                <img th:if="${platform == 'Xbox Series X/S' or platform == 'Xbox One' or platform == 'Xbox'}" src="/images/xbox-logo.svg" alt="Xbox">
+                                            </span>
+                                        </th:block>
+                                    </div>
+                                    <div class="game-card-compact-cover">
+                                        <!-- Game Cover Image -->
+                                        <img th:if="${game.imageUrl != null and !game.imageUrl.isEmpty()}" 
+                                             th:src="${game.imageUrl}" 
+                                             th:alt="${game.title}"
+                                             class="game-card-compact-image"
+                                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                        <div class="game-card-compact-placeholder" style="display: none;">
+                                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                                <rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect>
+                                                <polyline points="17 2 12 7 7 2"></polyline>
+                                            </svg>
+                                        </div>
+                                        
+                                        <!-- Hover Overlay -->
+                                        <div class="game-card-compact-overlay">
+                                            <div class="game-card-compact-overlay" style="flex-direction: column; gap: 0.5rem;">
+                                                <!-- Quick State Change Buttons -->
+                                                <div style="display: flex; flex-direction: column; gap: 0.375rem; width: 100%; max-width: 140px;">
+                                                    <form th:action="@{/library/{id}/state(id=${game.id}, state='NOT_STARTED')}" method="post" style="margin: 0;" th:if="${game.playState == null or game.playState.name() != 'NOT_STARTED'}" onclick="event.stopPropagation();">
+                                                        <button type="submit" class="game-card-compact-btn-secondary" style="width: 100%; font-size: 0.75rem; padding: 0.5rem;">
+                                                            Not Started
+                                                        </button>
+                                                    </form>
+                                                    <form th:action="@{/library/{id}/state(id=${game.id}, state='PLAYING')}" method="post" style="margin: 0;" th:if="${game.playState == null or game.playState.name() != 'PLAYING'}" onclick="event.stopPropagation();">
+                                                        <button type="submit" class="game-card-compact-btn-primary btn-primary" style="width: 100%; font-size: 0.75rem; padding: 0.5rem;">
+                                                            Playing
+                                                        </button>
+                                                    </form>
+                                                    <form th:action="@{/library/{id}/state(id=${game.id}, state='FINISHED')}" method="post" style="margin: 0;" th:if="${game.playState == null or game.playState.name() != 'FINISHED'}" onclick="event.stopPropagation();">
+                                                        <button type="submit" class="game-card-compact-btn-secondary" style="width: 100%; font-size: 0.75rem; padding: 0.5rem; background: rgba(34, 197, 94, 0.9) !important; border-color: rgba(34, 197, 94, 1) !important;">
+                                                            Finished
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                                <a th:href="@{/library/{id}(id=${game.id})}" 
+                                                   class="game-card-compact-details-btn"
+                                                   onclick="event.stopPropagation();">
+                                                    View Details
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Game Info - Just Title -->
+                                    <div class="game-card-compact-info">
+                                        <h3 class="game-card-compact-title">
+                                            <span class="game-title-text" th:text="${game.title}">Game Title</span>
+                                        </h3>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        </div>
+        
+        <!-- Remove old explore more section -->
+        <div style="display: none;">
+            <div class="explore-more-games-row">
+                    <div th:each="game : ${exploreNext}" 
+                         class="game-card-compact" 
+                         th:attr="data-game-id=${game.id}"
+                         onclick="window.location.href='/library/' + this.getAttribute('data-game-id')">
+                        <!-- Platform Bar - Above Cover (Game Case Style) -->
+                        <div class="game-card-compact-platform-bar" th:if="${game.platforms != null and !game.platforms.isEmpty()}">
+                            <th:block th:each="platform : ${game.platforms}">
+                                <span class="platform-bar-icon-compact" th:data-platform="${platform}">
+                                    <img th:if="${platform == 'Nintendo Switch'}" src="/images/nintendo-switch-logo.svg" alt="Switch">
+                                    <img th:if="${platform == 'PC'}" src="/images/pc-logo.svg" alt="PC">
+                                    <img th:if="${platform == 'PlayStation 5' or platform == 'PS5' or platform == 'PlayStation 4' or platform == 'PS4'}" src="/images/playstation-logo.svg" alt="PlayStation">
+                                    <img th:if="${platform == 'Xbox Series X/S' or platform == 'Xbox One' or platform == 'Xbox'}" src="/images/xbox-logo.svg" alt="Xbox">
+                                </span>
+                            </th:block>
+                        </div>
+                        <div class="game-card-compact-cover">
+                            <!-- Game Cover Image -->
+                            <img th:if="${game.imageUrl != null and !game.imageUrl.isEmpty()}" 
+                                 th:src="${game.imageUrl}" 
+                                 th:alt="${game.title}"
+                                 class="game-card-compact-image"
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div class="game-card-compact-placeholder" style="display: none;">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect>
+                                    <polyline points="17 2 12 7 7 2"></polyline>
+                                </svg>
+                            </div>
+                            
+                            <!-- Hover Overlay -->
+                            <div class="game-card-compact-overlay">
+                                <div class="game-card-compact-overlay" style="flex-direction: column; gap: 0.5rem;">
+                                    <!-- Quick State Change Buttons -->
+                                    <div style="display: flex; flex-direction: column; gap: 0.375rem; width: 100%; max-width: 140px;">
+                                        <form th:action="@{/library/{id}/state(id=${game.id}, state='NOT_STARTED')}" method="post" style="margin: 0;" th:if="${game.playState == null or game.playState.name() != 'NOT_STARTED'}" onclick="event.stopPropagation();">
+                                            <button type="submit" class="game-card-compact-btn-secondary" style="width: 100%; font-size: 0.75rem; padding: 0.5rem;">
+                                                Not Started
+                                            </button>
+                                        </form>
+                                        <form th:action="@{/library/{id}/state(id=${game.id}, state='PLAYING')}" method="post" style="margin: 0;" th:if="${game.playState == null or game.playState.name() != 'PLAYING'}" onclick="event.stopPropagation();">
+                                            <button type="submit" class="game-card-compact-btn-primary btn-primary" style="width: 100%; font-size: 0.75rem; padding: 0.5rem;">
+                                                Playing
+                                            </button>
+                                        </form>
+                                        <form th:action="@{/library/{id}/state(id=${game.id}, state='FINISHED')}" method="post" style="margin: 0;" th:if="${game.playState == null or game.playState.name() != 'FINISHED'}" onclick="event.stopPropagation();">
+                                            <button type="submit" class="game-card-compact-btn-secondary" style="width: 100%; font-size: 0.75rem; padding: 0.5rem; background: rgba(34, 197, 94, 0.9) !important; border-color: rgba(34, 197, 94, 1) !important;">
+                                                Finished
+                                            </button>
+                                        </form>
+                                    </div>
+                                    <a th:href="@{/library/{id}(id=${game.id})}" 
+                                       class="game-card-compact-details-btn"
+                                       onclick="event.stopPropagation();">
+                                        View Details
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Game Info -->
+                        <div class="game-card-compact-info">
+                            <h3 class="game-card-compact-title">
+                                <span class="game-title-text" th:text="${game.title}">Game Title</span>
+                            </h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+            <!-- Finished Section (in Explore More) -->
+            <section class="library-section library-section-secondary" th:if="${finished != null and !finished.isEmpty()}">
+                <div class="library-section-header">
+                    <div class="library-section-header-content">
+                        <h2 class="library-section-title library-section-title-secondary">Finished</h2>
+                    </div>
+                </div>
+                
+                <div class="explore-more-games-container">
+                    <div class="explore-more-games-row">
+                        <div th:each="game : ${finished}" class="game-card-compact" th:onclick="'window.location.href=\'/library/' + ${game.id} + '\''">
+                        <!-- Platform Bar - Above Cover (Game Case Style) -->
+                        <div class="game-card-compact-platform-bar" th:if="${game.platforms != null and !game.platforms.isEmpty()}">
+                            <th:block th:each="platform : ${game.platforms}">
+                                <span class="platform-bar-icon-compact" th:data-platform="${platform}">
+                                    <img th:if="${platform == 'Nintendo Switch'}" src="/images/nintendo-switch-logo.svg" alt="Switch">
+                                    <img th:if="${platform == 'PC'}" src="/images/pc-logo.svg" alt="PC">
+                                    <img th:if="${platform == 'PlayStation 5' or platform == 'PS5' or platform == 'PlayStation 4' or platform == 'PS4'}" src="/images/playstation-logo.svg" alt="PlayStation">
+                                    <img th:if="${platform == 'Xbox Series X/S' or platform == 'Xbox One' or platform == 'Xbox'}" src="/images/xbox-logo.svg" alt="Xbox">
+                                </span>
+                            </th:block>
+                        </div>
+                        <div class="game-card-compact-cover">
+                            <!-- Game Cover Image -->
+                            <img th:if="${game.imageUrl != null and !game.imageUrl.isEmpty()}" 
+                                 th:src="${game.imageUrl}" 
+                                 th:alt="${game.title}"
+                                 class="game-card-compact-image"
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div class="game-card-compact-placeholder" style="display: none;">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect>
+                                    <polyline points="17 2 12 7 7 2"></polyline>
+                                </svg>
+                            </div>
+                            
+                            <!-- Hover Overlay -->
+                            <div class="game-card-compact-overlay">
+                                <div class="game-card-compact-overlay" style="flex-direction: column; gap: 0.5rem;">
+                                    <!-- Quick State Change Buttons -->
+                                    <div style="display: flex; flex-direction: column; gap: 0.375rem; width: 100%; max-width: 140px;">
+                                        <form th:action="@{/library/{id}/state(id=${game.id}, state='NOT_STARTED')}" method="post" style="margin: 0;" th:if="${game.playState == null or game.playState.name() != 'NOT_STARTED'}" onclick="event.stopPropagation();">
+                                            <button type="submit" class="game-card-compact-btn-secondary" style="width: 100%; font-size: 0.75rem; padding: 0.5rem;">
+                                                Not Started
+                                            </button>
+                                        </form>
+                                        <form th:action="@{/library/{id}/state(id=${game.id}, state='PLAYING')}" method="post" style="margin: 0;" th:if="${game.playState == null or game.playState.name() != 'PLAYING'}" onclick="event.stopPropagation();">
+                                            <button type="submit" class="game-card-compact-btn-primary btn-primary" style="width: 100%; font-size: 0.75rem; padding: 0.5rem;">
+                                                Playing
+                                            </button>
+                                        </form>
+                                        <form th:action="@{/library/{id}/state(id=${game.id}, state='FINISHED')}" method="post" style="margin: 0;" th:if="${game.playState == null or game.playState.name() != 'FINISHED'}" onclick="event.stopPropagation();">
+                                            <button type="submit" class="game-card-compact-btn-secondary" style="width: 100%; font-size: 0.75rem; padding: 0.5rem; background: rgba(34, 197, 94, 0.9) !important; border-color: rgba(34, 197, 94, 1) !important;">
+                                                Finished
+                                            </button>
+                                        </form>
+                                    </div>
+                                    <a th:href="@{/library/{id}(id=${game.id})}" 
+                                       class="game-card-compact-details-btn"
+                                       onclick="event.stopPropagation();">
+                                        View Details
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Game Info -->
+                        <div class="game-card-compact-info">
+                            <h3 class="game-card-compact-title">
+                                <span class="game-title-text" th:text="${game.title}">Game Title</span>
+                            </h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        </div>
+        </div>
+
+        <!-- Wishlist View -->
+        <div id="wishlistView" th:classappend="${view == 'wishlist'} ? '' : 'hidden'" style="margin: 0; padding: 0;">
+            <section class="library-section" style="margin-top: 0;">
+                
+                <div th:if="${wishlist == null or wishlist.isEmpty()}" class="empty-state">
+                    <div class="empty-icon" style="font-size: 4rem; background: transparent; border: none; width: auto; height: auto;">⭐</div>
+                    <h3 class="empty-title">No games in wishlist</h3>
+                    <p class="empty-text">Add games to your wishlist to track games you want to play</p>
+                    <a href="/library/add" class="btn btn-primary" style="margin-top: 1rem; text-decoration: none; display: inline-block;">
+                        <span style="font-size: 1.125rem; line-height: 1;">+</span> Add Game
+                    </a>
+                </div>
+                
+                <div th:if="${wishlist != null and !wishlist.isEmpty()}" class="explore-more-games-container">
+                    <div class="explore-more-games-row">
+                        <div th:each="game : ${wishlist}" class="game-card-compact" th:onclick="'window.location.href=\'/library/' + ${game.id} + '\''">
+                            <!-- Platform Bar - Above Cover (Game Case Style) -->
+                            <div class="game-card-compact-platform-bar" th:if="${game.platforms != null and !game.platforms.isEmpty()}">
+                                <th:block th:each="platform : ${game.platforms}">
+                                    <span class="platform-bar-icon-compact" th:data-platform="${platform}">
+                                        <img th:if="${platform == 'Nintendo Switch'}" src="/images/nintendo-switch-logo.svg" alt="Switch">
+                                        <img th:if="${platform == 'PC'}" src="/images/pc-logo.svg" alt="PC">
+                                        <img th:if="${platform == 'PlayStation 5' or platform == 'PS5' or platform == 'PlayStation 4' or platform == 'PS4'}" src="/images/playstation-logo.svg" alt="PlayStation">
+                                        <img th:if="${platform == 'Xbox Series X/S' or platform == 'Xbox One' or platform == 'Xbox'}" src="/images/xbox-logo.svg" alt="Xbox">
+                                    </span>
+                                </th:block>
+                            </div>
+                            <div class="game-card-compact-cover">
+                                <!-- Game Cover Image -->
+                                <img th:if="${game.imageUrl != null and !game.imageUrl.isEmpty()}" 
+                                     th:src="${game.imageUrl}" 
+                                     th:alt="${game.title}"
+                                     class="game-card-compact-image"
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <div class="game-card-compact-placeholder" style="display: none;">
+                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect>
+                                        <polyline points="17 2 12 7 7 2"></polyline>
+                                    </svg>
+                                </div>
+                                
+                                <!-- Hover Overlay -->
+                                <div class="game-card-compact-overlay">
+                                    <div class="game-card-compact-overlay" style="flex-direction: column; gap: 0.5rem;">
+                                        <!-- Move to Library Button -->
+                                        <form th:action="@{/library/{id}/own(id=${game.id})}" method="post" style="margin: 0;" onclick="event.stopPropagation();">
+                                            <button type="submit" class="game-card-compact-btn-primary btn-primary" style="width: 100%; max-width: 140px; font-size: 0.75rem; padding: 0.5rem;">
+                                                Move to Library
+                                            </button>
+                                        </form>
+                                        <a th:href="@{/library/{id}(id=${game.id})}" 
+                                           class="game-card-compact-details-btn"
+                                           onclick="event.stopPropagation();">
+                                            View Details
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Game Info -->
+                            <div class="game-card-compact-info">
+                                <h3 class="game-card-compact-title">
+                                    <span class="game-title-text" th:text="${game.title}">Game Title</span>
+                                    <span th:if="${game.releaseYear != null}" class="game-card-compact-year" th:text="${game.releaseYear}">2020</span>
+                                </h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Floating Action Button -->
+    <a href="/library/add" class="floating-add-game-btn">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span class="floating-btn-text">Add Game</span>
+    </a>
+
+    <script>
+        function togglePlatformDropdown() {
+            // Placeholder for platform dropdown functionality
+            console.log('Platform dropdown clicked');
+        }
+        
+        // Removed - no longer needed
+        function _toggleExploreMore() {
+            const row = document.querySelector('.explore-more-games-row');
+            if (!row) return;
+            
+            const allGames = row.querySelectorAll('.game-card-compact');
+            const hiddenGames = Array.from(allGames).filter((game, index) => index >= 10);
+            const toggleBtn = document.getElementById('exploreMoreToggle');
+            const showText = toggleBtn.querySelector('.toggle-text-show');
+            const hideText = toggleBtn.querySelector('.toggle-text-hide');
+            
+            if (!hiddenGames.length) return;
+            
+            // Check if currently hidden by checking computed style of first hidden game
+            const isCurrentlyHidden = window.getComputedStyle(hiddenGames[0]).display === 'none';
+            
+            hiddenGames.forEach(game => {
+                if (isCurrentlyHidden) {
+                    // Show the games
+                    game.style.display = '';
+                    game.classList.remove('explore-more-hidden');
+                } else {
+                    // Hide the games
+                    game.style.display = 'none';
+                    game.classList.add('explore-more-hidden');
+                }
+            });
+            
+            // Update button text
+            if (isCurrentlyHidden) {
+                showText.style.display = 'none';
+                hideText.style.display = 'inline';
+            } else {
+                showText.style.display = 'inline';
+                hideText.style.display = 'none';
+            }
+        }
+        
+        // Library search functionality
+        function filterLibraryGames(searchQuery) {
+            const query = searchQuery.toLowerCase().trim();
+            const allGameCards = document.querySelectorAll('.game-card-compact');
+            let visibleCount = 0;
+            
+            // Get all sections
+            const sections = document.querySelectorAll('.library-section');
+            
+            allGameCards.forEach(card => {
+                const titleElement = card.querySelector('.game-title-text');
+                if (!titleElement) return;
+                
+                const title = titleElement.textContent.toLowerCase();
+                const matches = title.includes(query);
+                
+                if (matches) {
+                    card.style.display = '';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+            
+            // Hide/show sections based on whether they have visible games
+            sections.forEach(section => {
+                const sectionCards = section.querySelectorAll('.game-card-compact');
+                const visibleCards = Array.from(sectionCards).filter(card => 
+                    window.getComputedStyle(card).display !== 'none'
+                );
+                
+                // If section has no visible games and there's a search query, hide the section
+                if (query && visibleCards.length === 0) {
+                    section.style.display = 'none';
+                } else {
+                    section.style.display = '';
+                }
+            });
+            
+            // Show empty state if no games match
+            const emptyStates = document.querySelectorAll('.empty-state');
+            if (query && visibleCount === 0) {
+                // Create or show a "no results" message
+                let noResultsMsg = document.getElementById('libraryNoResults');
+                if (!noResultsMsg) {
+                    noResultsMsg = document.createElement('div');
+                    noResultsMsg.id = 'libraryNoResults';
+                    noResultsMsg.className = 'empty-state';
+                    noResultsMsg.style.margin = '3rem 0';
+                    noResultsMsg.innerHTML = `
+                        <div class="empty-icon" style="font-size: 3rem; background: transparent; border: none; width: auto; height: auto;">🔍</div>
+                        <h3 class="empty-title">No games found</h3>
+                        <p class="empty-text">No games match your search "${escapeHtml(searchQuery)}"</p>
+                    `;
+                    const mainContent = document.querySelector('.main-content');
+                    const firstSection = mainContent.querySelector('.library-section');
+                    if (firstSection) {
+                        firstSection.parentNode.insertBefore(noResultsMsg, firstSection);
+                    }
+                }
+                noResultsMsg.style.display = 'block';
+            } else {
+                const noResultsMsg = document.getElementById('libraryNoResults');
+                if (noResultsMsg) {
+                    noResultsMsg.style.display = 'none';
+                }
+            }
+        }
+        
+        function clearLibrarySearch() {
+            const searchInput = document.getElementById('librarySearchInput');
+            searchInput.value = '';
+            filterLibraryGames('');
+            document.getElementById('librarySearchClear').style.display = 'none';
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Initialize search functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('librarySearchInput');
+            const clearBtn = document.getElementById('librarySearchClear');
+            
+            if (searchInput) {
+                searchInput.addEventListener('input', function(e) {
+                    const query = e.target.value;
+                    filterLibraryGames(query);
+                    
+                    // Show/hide clear button
+                    if (query.trim()) {
+                        clearBtn.style.display = 'block';
+                    } else {
+                        clearBtn.style.display = 'none';
+                    }
+                });
+                
+                // Handle Escape key to clear search
+                searchInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        clearLibrarySearch();
+                        searchInput.blur();
+                    }
+                });
+            }
+        });
+        
+        // Toggle engagement type sections
+        function toggleEngagementSection(engagementTypeName) {
+            const section = document.getElementById('engagement-section-' + engagementTypeName);
+            const toggleBtn = event.target.closest('.engagement-type-toggle');
+            const toggleText = toggleBtn.querySelector('.toggle-text');
+            const toggleIcon = toggleBtn.querySelector('svg');
+            
+            if (!section) return;
+            
+            const isCurrentlyVisible = section.style.display !== 'none';
+            
+            if (isCurrentlyVisible) {
+                section.style.display = 'none';
+                toggleText.textContent = 'Expand';
+                toggleIcon.style.transform = 'rotate(-90deg)';
+            } else {
+                section.style.display = 'block';
+                toggleText.textContent = 'Collapse';
+                toggleIcon.style.transform = 'rotate(0deg)';
+            }
+        }
+        
+        // Show reflection prompt modal
+        function showReflectionPrompt(gameId) {
+            // Create modal overlay
+            const modal = document.createElement('div');
+            modal.className = 'reflection-modal-overlay';
+            modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 1rem;';
+            
+            // Create modal content
+            const modalContent = document.createElement('div');
+            modalContent.className = 'reflection-modal-content';
+            modalContent.style.cssText = 'background: var(--bg-primary); border-radius: 1rem; padding: 2rem; max-width: 500px; width: 100%; border: 1px solid var(--border-color); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);';
+            
+            modalContent.innerHTML = `
+                <div style="margin-bottom: 1.5rem;">
+                    <h3 style="font-size: 1.25rem; font-weight: 600; color: var(--text-primary); margin: 0 0 0.5rem 0;">Add Reflection</h3>
+                    <p style="font-size: 0.875rem; color: var(--text-secondary); margin: 0;">How did you feel about your last session?</p>
+                </div>
+                <form action="/library/${gameId}/reflection" method="post" id="reflectionForm">
+                    <div style="margin-bottom: 1.5rem;">
+                        <textarea name="reflection" 
+                                  placeholder="Share your thoughts about the session, what you enjoyed, what surprised you, or how it made you feel..."
+                                  style="width: 100%; min-height: 120px; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem; background: var(--bg-secondary); color: var(--text-primary); font-size: 0.9375rem; font-family: inherit; resize: vertical;"
+                                  required></textarea>
+                    </div>
+                    <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+                        <button type="button" 
+                                onclick="closeReflectionModal()"
+                                style="padding: 0.625rem 1.25rem; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 0.5rem; cursor: pointer; font-size: 0.875rem; font-weight: 500; transition: all 0.2s;"
+                                onmouseover="this.style.background='rgba(255, 255, 255, 0.1)'"
+                                onmouseout="this.style.background='var(--bg-secondary)'">
+                            Cancel
+                        </button>
+                        <button type="submit"
+                                style="padding: 0.625rem 1.25rem; background: var(--primary-color); color: #ffffff; border: none; border-radius: 0.5rem; cursor: pointer; font-size: 0.875rem; font-weight: 500; transition: all 0.2s;"
+                                onmouseover="this.style.background='#ff8c1a'"
+                                onmouseout="this.style.background='var(--primary-color)'">
+                            Save Reflection
+                        </button>
+                    </div>
+                </form>
+            `;
+            
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
+            
+            // Close on overlay click
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    closeReflectionModal();
+                }
+            });
+            
+            // Focus textarea
+            setTimeout(() => {
+                const textarea = modalContent.querySelector('textarea');
+                if (textarea) textarea.focus();
+            }, 100);
+        }
+        
+        function closeReflectionModal() {
+            const modal = document.querySelector('.reflection-modal-overlay');
+            if (modal) {
+                modal.remove();
+            }
+        }
+        
+        // Post-add confirmation message (Step 4: Post-add confirmation)
+        function showAddGameSuccessMessage(title, isCurrentlyPlaying) {
+            const messageDiv = document.getElementById('addGameSuccessMessage');
+            const titleEl = document.getElementById('successMessageTitle');
+            const textEl = document.getElementById('successMessageText');
+            
+            if (messageDiv && titleEl && textEl) {
+                if (isCurrentlyPlaying) {
+                    // If added as Currently Playing
+                    titleEl.textContent = 'Added to Currently Playing';
+                    textEl.textContent = `${title} is now in your "Currently Playing" section.`;
+                } else {
+                    // If added as Not Started / Wishlist
+                    titleEl.textContent = 'Added to your library';
+                    textEl.textContent = `${title} has been saved. You can always start playing later — this just saves it.`;
+                }
+                messageDiv.style.display = 'block';
+                
+                // Auto-hide after 5 seconds
+                setTimeout(() => {
+                    closeSuccessMessage();
+                }, 5000);
+                
+                // Remove URL parameters to clean up
+                if (window.history.replaceState) {
+                    const url = new URL(window.location);
+                    url.searchParams.delete('added');
+                    url.searchParams.delete('title');
+                    url.searchParams.delete('playing');
+                    window.history.replaceState({}, '', url);
+                }
+            }
+        }
+        
+        function closeSuccessMessage() {
+            const messageDiv = document.getElementById('addGameSuccessMessage');
+            if (messageDiv) {
+                messageDiv.style.display = 'none';
+            }
+        }
+        
+        // Library Tab Switching
+        function switchLibraryTab(tab) {
+            const currentlyPlayingView = document.getElementById('currentlyPlayingView');
+            const exploreMoreView = document.getElementById('exploreMoreView');
+            const tabCurrentlyPlaying = document.getElementById('tabCurrentlyPlaying');
+            const tabExploreMore = document.getElementById('tabExploreMore');
+            const tabCurrentlyPlayingAllGames = document.getElementById('tabCurrentlyPlayingAllGames');
+            const tabExploreMoreAllGames = document.getElementById('tabExploreMoreAllGames');
+            
+            if (tab === 'playing') {
+                // Show Currently Playing
+                if (currentlyPlayingView) currentlyPlayingView.style.display = 'block';
+                if (exploreMoreView) exploreMoreView.style.display = 'none';
+                
+                // Update tab classes in Currently Playing view
+                if (tabCurrentlyPlaying) {
+                    tabCurrentlyPlaying.classList.add('active');
+                }
+                if (tabExploreMore) {
+                    tabExploreMore.classList.remove('active');
+                }
+                
+                // Update tab classes in All Games view (if visible)
+                if (tabCurrentlyPlayingAllGames) {
+                    tabCurrentlyPlayingAllGames.classList.add('active');
+                }
+                if (tabExploreMoreAllGames) {
+                    tabExploreMoreAllGames.classList.remove('active');
+                }
+                
+                // Update URL without reload
+                if (window.history.pushState) {
+                    const url = new URL(window.location);
+                    url.searchParams.delete('view');
+                    window.history.pushState({}, '', url);
+                }
+            } else if (tab === 'explore') {
+                // Show All Games
+                if (currentlyPlayingView) currentlyPlayingView.style.display = 'none';
+                if (exploreMoreView) exploreMoreView.style.display = 'block';
+                
+                // Update tab classes in Currently Playing view
+                if (tabCurrentlyPlaying) {
+                    tabCurrentlyPlaying.classList.remove('active');
+                }
+                if (tabExploreMore) {
+                    tabExploreMore.classList.add('active');
+                }
+                
+                // Update tab classes in All Games view
+                if (tabCurrentlyPlayingAllGames) {
+                    tabCurrentlyPlayingAllGames.classList.remove('active');
+                }
+                if (tabExploreMoreAllGames) {
+                    tabExploreMoreAllGames.classList.add('active');
+                }
+                
+                // Update URL without reload
+                if (window.history.pushState) {
+                    const url = new URL(window.location);
+                    url.searchParams.set('view', 'explore');
+                    window.history.pushState({}, '', url);
+                }
+            }
+        }
+        
+        // Check for success message on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded, initializing library...');
+            console.log('Library view exists:', !!document.getElementById('libraryView'));
+            console.log('Currently playing view exists:', !!document.getElementById('currentlyPlayingView'));
+            console.log('Engagement sections exists:', !!document.getElementById('engagementSections'));
+            const urlParams = new URLSearchParams(window.location.search);
+            const added = urlParams.get('added');
+            const title = urlParams.get('title');
+            const playing = urlParams.get('playing');
+            const view = urlParams.get('view');
+            
+            // Initialize views - ensure Currently Playing is visible by default
+            const currentlyPlayingView = document.getElementById('currentlyPlayingView');
+            const exploreMoreView = document.getElementById('exploreMoreView');
+            const tabCurrentlyPlaying = document.getElementById('tabCurrentlyPlaying');
+            const tabExploreMore = document.getElementById('tabExploreMore');
+            
+            // Set initial tab based on URL
+            if (view === 'explore') {
+                // Show Explore More
+                if (currentlyPlayingView) currentlyPlayingView.style.display = 'none';
+                if (exploreMoreView) exploreMoreView.style.display = 'block';
+                if (tabCurrentlyPlaying) {
+                    tabCurrentlyPlaying.classList.remove('active');
+                }
+                if (tabExploreMore) {
+                    tabExploreMore.classList.add('active');
+                }
+            } else {
+                // Show Currently Playing (default)
+                if (currentlyPlayingView) currentlyPlayingView.style.display = 'block';
+                if (exploreMoreView) exploreMoreView.style.display = 'none';
+                if (tabCurrentlyPlaying) {
+                    tabCurrentlyPlaying.classList.add('active');
+                }
+                if (tabExploreMore) {
+                    tabExploreMore.classList.remove('active');
+                }
+            }
+            
+            // Update All Games view tabs if they exist
+            const tabCurrentlyPlayingAllGames = document.getElementById('tabCurrentlyPlayingAllGames');
+            const tabExploreMoreAllGames = document.getElementById('tabExploreMoreAllGames');
+            if (view === 'explore') {
+                if (tabCurrentlyPlayingAllGames) {
+                    tabCurrentlyPlayingAllGames.classList.remove('active');
+                }
+                if (tabExploreMoreAllGames) {
+                    tabExploreMoreAllGames.classList.add('active');
+                }
+            } else {
+                if (tabCurrentlyPlayingAllGames) {
+                    tabCurrentlyPlayingAllGames.classList.add('active');
+                }
+                if (tabExploreMoreAllGames) {
+                    tabExploreMoreAllGames.classList.remove('active');
+                }
+            }
+            
+            if (added === 'true' && title) {
+                showAddGameSuccessMessage(decodeURIComponent(title), playing === 'true');
+            }
+            
+            // Initialize engagement counts after DOM is ready
+            setTimeout(() => {
+                try {
+                    console.log('Initializing engagement counts...');
+                    updateEngagementCounts();
+                    // Set "All" as active by default
+                    filterByEngagementType('all');
+                    
+                    // Initialize All Games view counts if visible
+                    const allGamesGrid = document.getElementById('gamesGridAllGames');
+                    if (allGamesGrid) {
+                        const allGames = allGamesGrid.querySelectorAll('.game-card-compact');
+                        const engagementTypes = ['STORY', 'COMPLETION', 'ONLINE_MP', 'SOCIAL', 'COZY_LIFE_SIM'];
+                        const counts = {
+                            'STORY': 0,
+                            'COMPLETION': 0,
+                            'ONLINE_MP': 0,
+                            'SOCIAL': 0,
+                            'COZY_LIFE_SIM': 0
+                        };
+                        
+                        allGames.forEach(card => {
+                            const gameTypes = card.getAttribute('data-engagement-types');
+                            if (gameTypes) {
+                                const typesArray = gameTypes.split(',').filter(Boolean);
+                                typesArray.forEach(type => {
+                                    if (counts.hasOwnProperty(type)) {
+                                        counts[type]++;
+                                    }
+                                });
+                            }
+                        });
+                        
+                        const countAllAllGames = document.getElementById('count-all-allgames');
+                        if (countAllAllGames) {
+                            countAllAllGames.textContent = allGames.length;
+                        }
+                        
+                        engagementTypes.forEach(type => {
+                            const countElement = document.getElementById('count-allgames-' + type);
+                            if (countElement) {
+                                countElement.textContent = counts[type];
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error initializing engagement counts:', error);
+                    console.error(error.stack);
+                }
+            }, 500);
+        });
+        
+        // Filter by engagement type (Currently Playing view)
+        function filterByEngagementType(type) {
+            // Update active state in sidebar
+            const sidebar = document.getElementById('engagementSections');
+            if (sidebar) {
+                sidebar.querySelectorAll('.engagement-type-item').forEach(item => {
+                    if (item.getAttribute('data-type') === type) {
+                        item.classList.add('active');
+                    } else {
+                        item.classList.remove('active');
+                    }
+                });
+            }
+            
+            // Get all games from hidden container
+            const allGamesView = document.getElementById('allGamesView');
+            if (!allGamesView) return;
+            
+            const allGames = allGamesView.querySelectorAll('.currently-playing-game');
+            const gamesGrid = document.getElementById('gamesGrid');
+            if (!gamesGrid) return;
+            
+            // Clear current grid
+            gamesGrid.innerHTML = '';
+            
+            let visibleCount = 0;
+            const gamesToShow = [];
+            
+            // Filter and collect games
+            allGames.forEach(game => {
+                if (type === 'all') {
+                    gamesToShow.push(game);
+                    visibleCount++;
+                } else {
+                    const gameTypes = game.getAttribute('data-engagement-types');
+                    if (gameTypes && gameTypes.includes(type)) {
+                        gamesToShow.push(game);
+                        visibleCount++;
+                    }
+                }
+            });
+            
+            // Add filtered games to grid
+            gamesToShow.forEach(card => {
+                const clonedCard = card.cloneNode(true);
+                const gameId = clonedCard.getAttribute('data-game-id');
+                if (gameId) {
+                    clonedCard.setAttribute('onclick', 'window.location.href=\'/library/' + gameId + '\'');
+                }
+                clonedCard.style.width = '100%';
+                clonedCard.style.maxWidth = '100%';
+                clonedCard.style.minWidth = '0';
+                clonedCard.style.display = 'flex';
+                gamesGrid.appendChild(clonedCard);
+            });
+        }
+        
+        // Filter by engagement type (All Games view)
+        function filterByEngagementTypeAllGames(type) {
+            // Update active state in sidebar
+            const sidebar = document.getElementById('engagementSectionsAllGames');
+            if (sidebar) {
+                sidebar.querySelectorAll('.engagement-type-item').forEach(item => {
+                    if (item.getAttribute('data-type') === type) {
+                        item.classList.add('active');
+                    } else {
+                        item.classList.remove('active');
+                    }
+                });
+            }
+            
+            // Get all games from the All Games grid
+            const gamesGrid = document.getElementById('gamesGridAllGames');
+            if (!gamesGrid) return;
+            
+            const allGames = gamesGrid.querySelectorAll('.game-card-compact');
+            let visibleCount = 0;
+            
+            // Filter games
+            allGames.forEach(game => {
+                if (type === 'all') {
+                    game.style.display = '';
+                    visibleCount++;
+                } else {
+                    const gameTypes = game.getAttribute('data-engagement-types');
+                    if (gameTypes && gameTypes.includes(type)) {
+                        game.style.display = '';
+                        visibleCount++;
+                    } else {
+                        game.style.display = 'none';
+                    }
+                }
+            });
+        }
+        
+        
+        // Calculate and display engagement type counts, and populate games grid
+        function updateEngagementCounts() {
+            // Find games in the hidden container
+            const allGamesView = document.getElementById('allGamesView');
+            if (!allGamesView) {
+                console.error('allGamesView container not found!');
+                return;
+            }
+            
+            const gameCards = allGamesView.querySelectorAll('.currently-playing-game');
+            console.log('Found', gameCards.length, 'currently playing games');
+            
+            if (gameCards.length === 0) {
+                console.warn('No games found!');
+                return;
+            }
+            
+            const engagementTypes = ['STORY', 'COMPLETION', 'ONLINE_MP', 'SOCIAL', 'COZY_LIFE_SIM'];
+            const counts = {
+                'STORY': 0,
+                'COMPLETION': 0,
+                'ONLINE_MP': 0,
+                'SOCIAL': 0,
+                'COZY_LIFE_SIM': 0
+            };
+            
+            // Count games by engagement type
+            gameCards.forEach(card => {
+                const gameTypes = card.getAttribute('data-engagement-types');
+                if (gameTypes) {
+                    const typesArray = gameTypes.split(',').filter(Boolean);
+                    typesArray.forEach(type => {
+                        if (counts.hasOwnProperty(type)) {
+                            counts[type]++;
+                        }
+                    });
+                }
+            });
+            
+            // Update count displays in sidebar
+            const countAll = document.getElementById('count-all');
+            if (countAll) {
+                countAll.textContent = gameCards.length;
+            }
+            
+            engagementTypes.forEach(type => {
+                const countElement = document.getElementById('count-' + type);
+                if (countElement) {
+                    countElement.textContent = counts[type];
+                }
+            });
+            
+            // Populate games grid with all games (default: show all)
+            const gamesGrid = document.getElementById('gamesGrid');
+            if (gamesGrid) {
+                gamesGrid.innerHTML = '';
+                gameCards.forEach(card => {
+                    const clonedCard = card.cloneNode(true);
+                    const gameId = clonedCard.getAttribute('data-game-id');
+                    if (gameId) {
+                        clonedCard.setAttribute('onclick', 'window.location.href=\'/library/' + gameId + '\'');
+                    }
+                    clonedCard.style.width = '100%';
+                    clonedCard.style.maxWidth = '100%';
+                    clonedCard.style.minWidth = '0';
+                    clonedCard.style.display = 'flex';
+                    gamesGrid.appendChild(clonedCard);
+                });
+            }
+        }
+        
+        // Removed - no longer needed
+        function _toggleEngagementFilter() {
+            return;
+        }
+        
+        function _closeEngagementFilter() {
+            return;
+        }
+        
+        function _applyEngagementFilter() {
+            const checkedFilters = Array.from(document.querySelectorAll('.engagement-filter-input:checked'))
+                .map(cb => cb.value);
+            
+            const allGameCards = document.querySelectorAll('.game-card-compact:not(.currently-playing-game)');
+            
+            allGameCards.forEach(card => {
+                if (checkedFilters.length === 0) {
+                    card.style.display = '';
+                    return;
+                }
+                
+                const tags = card.querySelectorAll('.engagement-type-tag');
+                const cardTypes = Array.from(tags).map(tag => {
+                    return tag.getAttribute('data-engagement-type');
+                }).filter(Boolean);
+                
+                const hasMatch = checkedFilters.some(filter => cardTypes.includes(filter));
+                card.style.display = hasMatch ? '' : 'none';
+            });
+        }
+    </script>
 </body>
 </html>

@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+    <!-- Shared Header Fragment -->
+    <header class="header" th:fragment="header">
+        <div class="header-accent"></div>
+        <div class="header-content">
+            <div class="header-top">
+                <div style="display: flex; align-items: center; gap: 2rem;">
+                    <a href="/" style="text-decoration: none;">
+                        <div>
+                            <h1 class="logo">PlayNarrative</h1>
+                            <p class="logo-subtitle">personal gaming archive</p>
+                        </div>
+                    </a>
+                    <nav class="main-nav">
+                        <a href="/" class="nav-link" data-path="/">Dashboard</a>
+                        <a href="/library" class="nav-link" data-path="/library">Library</a>
+                        <a href="/" class="nav-link" data-path="/sessions">Sessions</a>
+                        <a href="/" class="nav-link" data-path="/insights">Insights</a>
+                    </nav>
+                    <script>
+                        (function() {
+                            var currentPath = window.location.pathname;
+                            document.querySelectorAll('.nav-link[data-path]').forEach(function(link) {
+                                var linkPath = link.getAttribute('data-path');
+                                if (linkPath === '/' && (currentPath === '/' || currentPath === '')) {
+                                    link.classList.add('active');
+                                } else if (linkPath !== '/' && currentPath.startsWith(linkPath)) {
+                                    link.classList.add('active');
+                                }
+                            });
+                        })();
+                    </script>
+                </div>
+                <div style="display: flex; align-items: center; gap: 1.5rem;">
+                    <!-- Time Display - Enhanced for Mental Health Awareness -->
+                    <div class="time-display" id="timeDisplay">
+                        <div class="time-wrapper">
+                            <div class="current-time" id="currentTime">00:00</div>
+                            <div class="time-period" id="timePeriod">AM</div>
+                        </div>
+                        <div class="current-date" id="currentDate">MON, JAN 1</div>
+                        <div class="session-info" id="sessionInfo" style="display: none;">
+                            <div class="session-duration" id="sessionDuration">Session: 0m</div>
+                        </div>
+                        <div class="wellness-message" id="wellnessMessage"></div>
+                        <div class="time-indicator" id="timeIndicator"></div>
+                    </div>
+                    <!-- Immediate time update script (runs before DOM ready) -->
+                    <script>
+                        (function() {
+                            var now = new Date();
+                            var hours = now.getHours();
+                            var minutes = now.getMinutes().toString().padStart(2, '0');
+                            var displayHours = hours % 12 || 12;
+                            var timeString = displayHours.toString().padStart(2, '0') + ':' + minutes;
+                            var period = hours >= 12 ? 'PM' : 'AM';
+                            var days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+                            var months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+                            var dateString = days[now.getDay()] + ', ' + months[now.getMonth()] + ' ' + now.getDate();
+                            
+                            // Set initial values immediately
+                            var timeEl = document.getElementById('currentTime');
+                            var dateEl = document.getElementById('currentDate');
+                            var periodEl = document.getElementById('timePeriod');
+                            if (timeEl) timeEl.textContent = timeString;
+                            if (dateEl) dateEl.textContent = dateString;
+                            if (periodEl) periodEl.textContent = period;
+                        })();
+                    </script>
+                    <!-- Profile Icon -->
+                    <button class="user-profile-btn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Time Update Script - Enhanced for Mental Health Awareness -->
+    <script>
+        // Session tracking for mental health awareness
+        let sessionStartTime = sessionStorage.getItem('sessionStartTime');
+        if (!sessionStartTime) {
+            sessionStartTime = Date.now();
+            sessionStorage.setItem('sessionStartTime', sessionStartTime);
+        }
+        
+        function getTimeOfDay(hours) {
+            if (hours >= 5 && hours < 12) return 'morning';
+            if (hours >= 12 && hours < 17) return 'afternoon';
+            if (hours >= 17 && hours < 21) return 'evening';
+            return 'night';
+        }
+        
+        function formatDuration(ms) {
+            const minutes = Math.floor(ms / 60000);
+            const hours = Math.floor(minutes / 60);
+            if (hours > 0) {
+                return `${hours}h ${minutes % 60}m`;
+            }
+            return `${minutes}m`;
+        }
+        
+        function getWellnessMessage(hours, sessionMinutes) {
+            // Sleep schedule warnings (10 PM - 5 AM)
+            if (hours >= 22 || hours < 5) {
+                return '💤 Consider winding down soon';
+            }
+            
+            // Break reminders based on session duration
+            if (sessionMinutes >= 120) {
+                return '⏸️ Time for a break?';
+            } else if (sessionMinutes >= 90) {
+                return '💧 Stay hydrated';
+            } else if (sessionMinutes >= 60) {
+                return '👀 Remember to blink';
+            }
+            
+            // Time-of-day wellness messages
+            if (hours >= 5 && hours < 12) {
+                return '☀️ Good morning!';
+            } else if (hours >= 12 && hours < 17) {
+                return '🌤️ Afternoon gaming';
+            } else if (hours >= 17 && hours < 21) {
+                return '🌅 Evening session';
+            }
+            
+            return '';
+        }
+        
+        function updateTime() {
+            const now = new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const seconds = now.getSeconds().toString().padStart(2, '0');
+            
+            // 12-hour format for display
+            const displayHours = hours % 12 || 12;
+            const timeString = `${displayHours.toString().padStart(2, '0')}:${minutes}`;
+            const period = hours >= 12 ? 'PM' : 'AM';
+            
+            const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+            const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+            const dateString = `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}`;
+            
+            // Calculate session duration
+            const sessionDuration = Date.now() - parseInt(sessionStartTime);
+            const sessionMinutes = Math.floor(sessionDuration / 60000);
+            
+            const timeElement = document.getElementById('currentTime');
+            const dateElement = document.getElementById('currentDate');
+            const periodElement = document.getElementById('timePeriod');
+            const timeDisplay = document.getElementById('timeDisplay');
+            const indicator = document.getElementById('timeIndicator');
+            const sessionInfo = document.getElementById('sessionInfo');
+            const sessionDurationEl = document.getElementById('sessionDuration');
+            const wellnessMessage = document.getElementById('wellnessMessage');
+            
+            // Update time and date - ensure elements exist first
+            if (timeElement) {
+                timeElement.textContent = timeString;
+            }
+            if (dateElement) {
+                dateElement.textContent = dateString;
+            }
+            if (periodElement) {
+                periodElement.textContent = period;
+            }
+            
+            // Update session duration (show after 30 minutes)
+            if (sessionMinutes >= 30) {
+                if (sessionInfo) sessionInfo.style.display = 'block';
+                if (sessionDurationEl) {
+                    sessionDurationEl.textContent = `Session: ${formatDuration(sessionDuration)}`;
+                    // Add warning class for long sessions
+                    if (sessionMinutes >= 120) {
+                        sessionDurationEl.className = 'session-duration session-warning';
+                    } else if (sessionMinutes >= 90) {
+                        sessionDurationEl.className = 'session-duration session-caution';
+                    } else {
+                        sessionDurationEl.className = 'session-duration';
+                    }
+                }
+            } else {
+                if (sessionInfo) sessionInfo.style.display = 'none';
+            }
+            
+            // Update wellness message
+            const message = getWellnessMessage(hours, sessionMinutes);
+            if (wellnessMessage) {
+                wellnessMessage.textContent = message;
+                if (message) {
+                    wellnessMessage.style.display = 'block';
+                    // Add urgency class for late night
+                    if (hours >= 22 || hours < 5) {
+                        wellnessMessage.className = 'wellness-message wellness-urgent';
+                    } else if (sessionMinutes >= 90) {
+                        wellnessMessage.className = 'wellness-message wellness-caution';
+                    } else {
+                        wellnessMessage.className = 'wellness-message';
+                    }
+                } else {
+                    wellnessMessage.style.display = 'none';
+                }
+            }
+            
+            // Update time-of-day styling
+            const timeOfDay = getTimeOfDay(hours);
+            if (timeDisplay) {
+                timeDisplay.className = 'time-display time-' + timeOfDay;
+                // Add late-night warning class
+                if (hours >= 22 || hours < 5) {
+                    timeDisplay.classList.add('time-late-night');
+                } else {
+                    timeDisplay.classList.remove('time-late-night');
+                }
+            }
+            
+            // Update indicator pulse (subtle animation every second)
+            if (indicator) {
+                indicator.style.opacity = (parseInt(seconds) % 2 === 0) ? '0.6' : '1';
+            }
+        }
+        
+        // Update immediately and every second for smooth updates
+        // Use multiple strategies to ensure it runs
+        let timeUpdateInterval = null;
+        
+        function initTimeDisplay() {
+            try {
+                // Check if elements exist
+                const timeEl = document.getElementById('currentTime');
+                if (!timeEl) {
+                    // Elements don't exist yet, try again later
+                    setTimeout(initTimeDisplay, 50);
+                    return;
+                }
+                
+                // Clear any existing interval
+                if (timeUpdateInterval) {
+                    clearInterval(timeUpdateInterval);
+                }
+                
+                // Update immediately
+                updateTime();
+                
+                // Set up interval for updates every second
+                timeUpdateInterval = setInterval(updateTime, 1000);
+            } catch (e) {
+                console.error('Error initializing time display:', e);
+                // Retry after a delay
+                setTimeout(initTimeDisplay, 100);
+            }
+        }
+        
+        // Run when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initTimeDisplay);
+        } else {
+            // DOM already loaded, run immediately
+            initTimeDisplay();
+        }
+        
+        // Fallback: try again after a short delay in case fragment loads late
+        setTimeout(initTimeDisplay, 200);
+    </script>
+</body>
+</html>

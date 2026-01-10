@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Game - PlayNarrative</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <!-- Header -->
+    <div th:replace="~{fragments/header :: header}"></div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="add-game-page-flow">
+            <!-- Page Header -->
+            <div class="add-game-page-header-flow">
+                <a href="/library" class="add-game-back-link">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                    <span>Back to Library</span>
+                </a>
+            </div>
+
+            <!-- Step 1: Search / Select Game -->
+            <div class="add-game-step-section" id="stepSearch">
+                <div class="add-game-step-header">
+                    <h2 class="add-game-step-title">Find your game</h2>
+                    <p class="add-game-step-subtitle">Search thousands of games and add them to your library</p>
+                </div>
+                
+                <div class="add-game-search-wrapper-flow">
+                    <svg class="add-game-search-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                    <input type="text" 
+                           id="addGameSearchInput" 
+                           class="add-game-search-input-flow" 
+                           placeholder="Type at least 2 characters to search..."
+                           autocomplete="off"
+                           aria-label="Search for a game">
+                </div>
+                
+                <!-- Platform Filter -->
+                <div class="add-game-platform-filter-flow" id="addGamePlatformFilter" style="display: none;">
+                    <label class="platform-filter-label">Filter by Platform:</label>
+                    <div class="add-game-platform-buttons-flow">
+                        <button class="add-game-platform-btn-flow active" data-platform="all" onclick="filterAddGameSearch('all')">All</button>
+                        <button class="add-game-platform-btn-flow" data-platform="PC" onclick="filterAddGameSearch('PC')">PC</button>
+                        <button class="add-game-platform-btn-flow" data-platform="PS5" onclick="filterAddGameSearch('PS5')">PS5</button>
+                        <button class="add-game-platform-btn-flow" data-platform="PS4" onclick="filterAddGameSearch('PS4')">PS4</button>
+                        <button class="add-game-platform-btn-flow" data-platform="Nintendo Switch" onclick="filterAddGameSearch('Nintendo Switch')">Switch</button>
+                        <button class="add-game-platform-btn-flow" data-platform="Xbox Series X/S" onclick="filterAddGameSearch('Xbox Series X/S')">Xbox</button>
+                    </div>
+                </div>
+                
+                <!-- Manual Entry Option -->
+                <div class="add-game-manual-entry-flow">
+                    <button class="btn-link" id="toggleManualEntry" onclick="toggleManualEntry()">Can't find it? Add manually</button>
+                    <div id="manualEntryForm" class="manual-entry-form" style="display: none;">
+                        <div class="manual-entry-fields">
+                            <div class="form-group">
+                                <label for="manualTitle">Title *</label>
+                                <input type="text" id="manualTitle" placeholder="Game name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="manualPlatform">Platform</label>
+                                <input type="text" id="manualPlatform" placeholder="e.g., PC, PS5, Switch">
+                            </div>
+                            <div class="form-group">
+                                <label for="manualYear">Release Year</label>
+                                <input type="number" id="manualYear" placeholder="e.g., 2020" min="1970" max="2030">
+                            </div>
+                        </div>
+                        <button class="btn-secondary" onclick="useManualEntry()">Use Manual Entry</button>
+                    </div>
+                </div>
+                
+                <!-- Loading State -->
+                <div id="addGameLoading" class="add-game-loading-flow" style="display: none;">
+                    <div class="loading-spinner"></div>
+                    <p>Searching...</p>
+                </div>
+                
+                <!-- Search Results -->
+                <div id="addGameResults" class="add-game-results-flow" style="display: none;"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add Game Modal - Philosophy-Aligned Flow -->
+    <div class="modal-overlay" id="addGameModal" style="display: none;">
+        <div class="modal-content platform-modal" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2 id="addGameModalTitle">Add to Library</h2>
+                <button class="modal-close" onclick="closeAddGameModal()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                <!-- Selected Game Preview -->
+                <div id="selectedGamePreview" class="selected-game-preview" style="display: none; margin-bottom: 1.5rem; padding: 1rem; background: rgba(100, 116, 139, 0.1); border-radius: 8px;">
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <img id="previewGameImage" src="" alt="" style="width: 60px; height: 80px; object-fit: cover; border-radius: 4px; display: none;">
+                        <div style="flex: 1;">
+                            <h3 id="previewGameTitle" style="margin: 0 0 0.25rem 0; font-size: 1rem; font-weight: 600;"></h3>
+                            <p id="previewGameMeta" style="margin: 0; font-size: 0.875rem; color: var(--text-secondary);"></p>
+                        </div>
+                        <button class="btn-link-small" onclick="closeAddGameModal(true);" style="font-size: 0.875rem;">Change game</button>
+                    </div>
+                </div>
+
+                <!-- Step 2: Confirm & Personalize -->
+                <div id="step2Personalize" class="add-game-step">
+                    <p class="modal-subtitle" style="margin-bottom: 1.5rem;">How does this game fit into your life?</p>
+                    
+                    <!-- A. Ownership / Intent -->
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <label style="display: block; color: var(--text-primary); font-size: 0.9375rem; font-weight: 500; margin-bottom: 0.75rem;">
+                            Ownership / Intent
+                        </label>
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <label class="platform-checkbox-label" style="padding: 0.75rem; border: 1px solid rgba(100, 116, 139, 0.3); border-radius: 6px; cursor: pointer;">
+                                <input type="radio" name="ownership" value="owned" checked>
+                                <span><strong>Owned</strong> — I own this game</span>
+                            </label>
+                            <label class="platform-checkbox-label" style="padding: 0.75rem; border: 1px solid rgba(100, 116, 139, 0.3); border-radius: 6px; cursor: pointer;">
+                                <input type="radio" name="ownership" value="wishlist">
+                                <span><strong>Wishlist</strong> — I want to play this later</span>
+                            </label>
+                            <label class="platform-checkbox-label" style="padding: 0.75rem; border: 1px solid rgba(100, 116, 139, 0.3); border-radius: 6px; cursor: pointer;">
+                                <input type="radio" name="ownership" value="played_before">
+                                <span><strong>Played Before</strong> — Revisiting this game</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- B. Initial Status -->
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <label style="display: block; color: var(--text-primary); font-size: 0.9375rem; font-weight: 500; margin-bottom: 0.75rem;">
+                            Initial Status
+                        </label>
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <label class="platform-checkbox-label" style="padding: 0.75rem; border: 1px solid rgba(100, 116, 139, 0.3); border-radius: 6px; cursor: pointer;">
+                                <input type="radio" name="initialStatus" value="NOT_STARTED" checked>
+                                <span><strong>Not Started</strong> — Default</span>
+                            </label>
+                            <label class="platform-checkbox-label" style="padding: 0.75rem; border: 1px solid rgba(100, 116, 139, 0.3); border-radius: 6px; cursor: pointer;">
+                                <input type="radio" name="initialStatus" value="PLAYING">
+                                <span><strong>Currently Playing</strong></span>
+                            </label>
+                            <label class="platform-checkbox-label" style="padding: 0.75rem; border: 1px solid rgba(100, 116, 139, 0.3); border-radius: 6px; cursor: pointer;">
+                                <input type="radio" name="initialStatus" value="FINISHED">
+                                <span><strong>Finished</strong></span>
+                            </label>
+                            <label class="platform-checkbox-label" style="padding: 0.75rem; border: 1px solid rgba(100, 116, 139, 0.3); border-radius: 6px; cursor: pointer;">
+                                <input type="radio" name="initialStatus" value="ON_HOLD">
+                                <span><strong>On Hold</strong></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- C. Engagement Type (multi-select) -->
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <label style="display: block; color: var(--text-primary); font-size: 0.9375rem; font-weight: 500; margin-bottom: 0.75rem;">
+                            Engagement Type <span style="font-weight: normal; color: var(--text-secondary); font-size: 0.875rem;">(optional)</span>
+                        </label>
+                        <p style="margin-bottom: 0.75rem; font-size: 0.875rem; color: var(--text-secondary);">How do you engage with this game? Select all that apply.</p>
+                        <div class="platform-checkboxes" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.5rem;">
+                            <label class="platform-checkbox-label" style="padding: 0.75rem; border: 1px solid rgba(100, 116, 139, 0.3); border-radius: 6px; cursor: pointer;">
+                                <input type="checkbox" name="engagementTypes" value="STORY">
+                                <span>Story</span>
+                            </label>
+                            <label class="platform-checkbox-label" style="padding: 0.75rem; border: 1px solid rgba(100, 116, 139, 0.3); border-radius: 6px; cursor: pointer;">
+                                <input type="checkbox" name="engagementTypes" value="COMPLETION">
+                                <span>Completion</span>
+                            </label>
+                            <label class="platform-checkbox-label" style="padding: 0.75rem; border: 1px solid rgba(100, 116, 139, 0.3); border-radius: 6px; cursor: pointer;">
+                                <input type="checkbox" name="engagementTypes" value="ONLINE_MP">
+                                <span>Online MP</span>
+                            </label>
+                            <label class="platform-checkbox-label" style="padding: 0.75rem; border: 1px solid rgba(100, 116, 139, 0.3); border-radius: 6px; cursor: pointer;">
+                                <input type="checkbox" name="engagementTypes" value="SOCIAL">
+                                <span>Social</span>
+                            </label>
+                            <label class="platform-checkbox-label" style="padding: 0.75rem; border: 1px solid rgba(100, 116, 139, 0.3); border-radius: 6px; cursor: pointer;">
+                                <input type="checkbox" name="engagementTypes" value="COZY_LIFE_SIM">
+                                <span>Cozy / Life Sim</span>
+                            </label>
+                        </div>
+                        <p style="margin-top: 0.5rem; font-size: 0.875rem; color: var(--text-secondary);">These help you filter and organize your library by how you play</p>
+                    </div>
+
+                    <!-- D. Optional Contextual Notes -->
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <label for="contextualNotes" style="display: block; color: var(--text-primary); font-size: 0.9375rem; font-weight: 500; margin-bottom: 0.75rem;">
+                            Contextual Notes <span style="font-weight: normal; color: var(--text-secondary); font-size: 0.875rem;">(optional)</span>
+                        </label>
+                        <textarea id="contextualNotes" name="contextualNotes" 
+                                  placeholder="Anything you want to remember about why you added this? (e.g., 'Cozy game for evenings', 'Play with husband', 'Long-term life sim, no rush')"
+                                  style="width: 100%; padding: 0.75rem; border: 1px solid rgba(100, 116, 139, 0.3); border-radius: 6px; background: rgba(15, 23, 42, 0.5); color: #e2e8f0; font-family: inherit; font-size: 0.9375rem; resize: vertical; min-height: 80px;"></textarea>
+                    </div>
+
+                    <!-- Platform Selection (only for owned/played_before games) -->
+                    <div id="platformSelectionSection" class="form-group" style="margin-bottom: 1.5rem;">
+                        <label style="display: block; color: var(--text-primary); font-size: 0.9375rem; font-weight: 500; margin-bottom: 0.75rem;">
+                            Platform(s) <span class="required">*</span>
+                        </label>
+                        <div class="platform-checkboxes" id="addGamePlatformCheckboxes">
+                            <!-- Platforms will be populated dynamically from game data -->
+                        </div>
+                        <div class="custom-platform-input" id="customPlatformInput" style="display: none; margin-top: 0.75rem;">
+                            <label for="addGameCustomPlatform" style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem;">Custom Platform:</label>
+                            <input type="text" id="addGameCustomPlatform" placeholder="e.g., Steam Deck, Oculus Quest" style="width: 100%; padding: 0.75rem; border: 1px solid rgba(100, 116, 139, 0.3); border-radius: 6px; background: rgba(15, 23, 42, 0.5); color: #e2e8f0;">
+                        </div>
+                    </div>
+
+                    <!-- Format Selection (only for owned/played_before games) -->
+                    <div id="formatSelectionSection" class="form-group" style="margin-bottom: 1.5rem;">
+                        <label style="display: block; color: var(--text-primary); font-size: 0.9375rem; font-weight: 500; margin-bottom: 0.75rem;">
+                            Format
+                        </label>
+                        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                            <label class="platform-checkbox-label" style="flex: 1; min-width: 120px;">
+                                <input type="radio" name="addGameFormat" value="physical">
+                                <span>📦 Physical</span>
+                            </label>
+                            <label class="platform-checkbox-label" style="flex: 1; min-width: 120px;">
+                                <input type="radio" name="addGameFormat" value="digital" checked>
+                                <span>💿 Digital</span>
+                            </label>
+                            <label class="platform-checkbox-label" style="flex: 1; min-width: 120px;">
+                                <input type="radio" name="addGameFormat" value="both">
+                                <span>📦💿 Both</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Decide when it becomes active -->
+                <div id="step3Active" class="add-game-step" style="display: none;">
+                    <p class="modal-subtitle" style="margin-bottom: 1.5rem;">When should this become active?</p>
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        <label class="platform-checkbox-label" style="padding: 1rem; border: 1px solid rgba(100, 116, 139, 0.3); border-radius: 6px; cursor: pointer;">
+                            <input type="radio" name="makeActive" value="false" checked>
+                            <div>
+                                <strong>Add to Library only</strong>
+                                <p style="margin: 0.25rem 0 0 0; font-size: 0.875rem; color: var(--text-secondary);">You can always start playing later — this just saves it.</p>
+                            </div>
+                        </label>
+                        <label class="platform-checkbox-label" style="padding: 1rem; border: 1px solid rgba(100, 116, 139, 0.3); border-radius: 6px; cursor: pointer;">
+                            <input type="radio" name="makeActive" value="true">
+                            <div>
+                                <strong>Add & mark as Currently Playing</strong>
+                                <p style="margin: 0.25rem 0 0 0; font-size: 0.875rem; color: var(--text-secondary);">This will appear in your "Currently Playing" section.</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+                <button class="btn-secondary" onclick="closeAddGameModal()">Cancel</button>
+                <div style="display: flex; gap: 0.75rem;">
+                    <button id="backToStep2Btn" class="btn-secondary" onclick="backToStep2()" style="display: none;">Back</button>
+                    <button id="continueToStep3Btn" class="btn-primary" onclick="continueToStep3()">Continue</button>
+                    <button id="confirmAddGameBtn" class="btn-primary" onclick="confirmAddGame()" style="display: none;">Add to Library</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let addGameSearchTimeout = null;
+        let selectedGame = null;
+        let selectedPlatformFilter = 'all';
+        let lastSearchQuery = '';
+        let lastSearchResults = null;
+        let currentStep = 2; // Step 2 = Personalize, Step 3 = Active decision
+
+        // Search functionality with debounce (300-500ms)
+        document.getElementById('addGameSearchInput').addEventListener('input', function(e) {
+            const query = e.target.value.trim();
+            
+            if (query.length < 2) {
+                document.getElementById('addGameResults').style.display = 'none';
+                document.getElementById('addGamePlatformFilter').style.display = 'none';
+                return;
+            }
+            
+            clearTimeout(addGameSearchTimeout);
+            addGameSearchTimeout = setTimeout(() => {
+                searchGamesForAdd(query);
+            }, 400); // 400ms debounce
+        });
+
+        function searchGamesForAdd(query) {
+            document.getElementById('addGameLoading').style.display = 'block';
+            document.getElementById('addGameResults').style.display = 'none';
+            
+            lastSearchQuery = query;
+            
+            fetch(`/api/games/search?query=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    window.addGameSearchResultsData = data;
+                    let filteredData = data;
+                    if (selectedPlatformFilter !== 'all') {
+                        filteredData = filterResultsByPlatform(data, selectedPlatformFilter);
+                    }
+                    lastSearchResults = filteredData;
+                    displaySearchResults(filteredData);
+                    document.getElementById('addGameLoading').style.display = 'none';
+                    document.getElementById('addGameResults').style.display = 'block';
+                    if (data.length > 0) {
+                        document.getElementById('addGamePlatformFilter').style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    console.error('Search error:', error);
+                    document.getElementById('addGameLoading').style.display = 'none';
+                    alert('Failed to search games. Please try again.');
+                });
+        }
+        
+        function filterResultsByPlatform(results, platform) {
+            if (!results || platform === 'all') return results;
+            
+            return results.filter(game => {
+                const platforms = game.platforms || [];
+                return platforms.some(p => {
+                    const name = p.platform?.name || '';
+                    const normalizedName = name.toLowerCase();
+                    const normalizedFilter = platform.toLowerCase();
+                    
+                    if (normalizedFilter === 'pc') {
+                        return normalizedName.includes('pc') || normalizedName.includes('windows');
+                    } else if (normalizedFilter === 'ps5') {
+                        return normalizedName.includes('playstation 5') || normalizedName.includes('ps5');
+                    } else if (normalizedFilter === 'ps4') {
+                        return normalizedName.includes('playstation 4') || normalizedName.includes('ps4');
+                    } else if (normalizedFilter === 'nintendo switch') {
+                        return normalizedName.includes('nintendo switch') || normalizedName.includes('switch');
+                    } else if (normalizedFilter.includes('xbox')) {
+                        return normalizedName.includes('xbox');
+                    }
+                    
+                    return normalizedName.includes(normalizedFilter);
+                });
+            });
+        }
+        
+        function filterAddGameSearch(platform) {
+            selectedPlatformFilter = platform;
+            
+            document.querySelectorAll('.add-game-platform-btn-flow').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-platform="${platform}"]`).classList.add('active');
+            
+            if (window.addGameSearchResultsData && window.addGameSearchResultsData.length > 0) {
+                let filtered = filterResultsByPlatform(window.addGameSearchResultsData, platform);
+                lastSearchResults = filtered;
+                displaySearchResults(filtered);
+            }
+        }
+
+        function displaySearchResults(results) {
+            const container = document.getElementById('addGameResults');
+            
+            if (!results || results.length === 0) {
+                container.innerHTML = '<div class="add-game-no-results"><p>No games found. Try a different search term.</p></div>';
+                return;
+            }
+            
+            let html = '<div class="add-game-results-grid-flow" id="addGameResultsGrid">';
+            results.forEach((game, displayIndex) => {
+                let originalIndex = -1;
+                if (window.addGameSearchResultsData) {
+                    originalIndex = window.addGameSearchResultsData.findIndex(g => 
+                        g.id === game.id || (g.name === game.name && g.id === game.id)
+                    );
+                }
+                const gameIndex = originalIndex >= 0 ? originalIndex : displayIndex;
+                
+                const imageUrl = game.background_image;
+                const hasImage = imageUrl && imageUrl.trim() !== '';
+                const releaseYear = game.released ? game.released.split('-')[0] : '';
+                const platforms = game.platforms || [];
+                const platformNameList = platforms.map(p => p.platform?.name || '').filter(Boolean);
+                const platformNames = platformNameList.slice(0, 3).join(', ');
+                
+                html += `
+                    <div class="add-game-result-card-flow" data-game-index="${gameIndex}" onclick="selectGameByIndex(${gameIndex}); return false;">
+                        ${hasImage ? 
+                            `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(game.name)}" class="add-game-result-image-flow" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                             <div class="add-game-result-image-placeholder" style="display: none;">No image</div>` :
+                            `<div class="add-game-result-image-placeholder">No image</div>`
+                        }
+                        <div class="add-game-result-info-flow">
+                            <div class="add-game-result-title-flow">${escapeHtml(game.name)}</div>
+                            ${releaseYear || platformNames ? `<div class="add-game-result-meta-flow">
+                                ${releaseYear ? escapeHtml(releaseYear) : ''}${releaseYear && platformNames ? ' • ' : ''}${platformNames ? escapeHtml(platformNames) : ''}
+                            </div>` : ''}
+                            ${platformNameList.length ? `<div class="add-game-result-platforms">
+                                ${platformNameList.slice(0, 6).map(name => `<span class="platform-pill">${escapeHtml(name)}</span>`).join('')}
+                            </div>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+        
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function selectGameByIndex(index) {
+            if (window.addGameSearchResultsData && window.addGameSearchResultsData[index]) {
+                const game = window.addGameSearchResultsData[index];
+                selectGame(game);
+            } else {
+                alert('Error: Game not found. Please try selecting again.');
+            }
+        }
+
+        function selectGame(game) {
+            selectedGame = game;
+            
+            // Check if game is already in library
+            if (game.id) {
+                fetch(`/api/games/status?igdbId=${encodeURIComponent(game.id)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.exists) {
+                            alert('This game is already in your library.');
+                            return;
+                        } else {
+                            showAddGameModal();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error checking game status:', error);
+                        showAddGameModal();
+                    });
+            } else {
+                showAddGameModal();
+            }
+        }
+
+        function showAddGameModal() {
+            if (!selectedGame) return;
+            
+            const modal = document.getElementById('addGameModal');
+            const title = document.getElementById('addGameModalTitle');
+            title.textContent = 'Add to Library';
+            
+            // Show selected game preview
+            const preview = document.getElementById('selectedGamePreview');
+            const previewImage = document.getElementById('previewGameImage');
+            const previewTitle = document.getElementById('previewGameTitle');
+            const previewMeta = document.getElementById('previewGameMeta');
+            
+            previewTitle.textContent = selectedGame.name;
+            const metaParts = [];
+            if (selectedGame.released) {
+                const releaseYear = selectedGame.released.split('-')[0];
+                if (releaseYear) metaParts.push(releaseYear);
+            }
+            if (selectedGame.platforms && selectedGame.platforms.length > 0) {
+                const platformNames = selectedGame.platforms.map(p => p.platform?.name || '').filter(Boolean).slice(0, 3);
+                if (platformNames.length > 0) {
+                    metaParts.push(platformNames.join(', '));
+                }
+            }
+            previewMeta.textContent = metaParts.join(' • ');
+            
+            if (selectedGame.background_image) {
+                previewImage.src = selectedGame.background_image;
+                previewImage.style.display = 'block';
+                previewImage.onerror = function() {
+                    this.style.display = 'none';
+                };
+            } else {
+                previewImage.style.display = 'none';
+            }
+            preview.style.display = 'block';
+            
+            // Reset form to defaults
+            document.querySelector('input[name="ownership"][value="owned"]').checked = true;
+            document.querySelector('input[name="initialStatus"][value="NOT_STARTED"]').checked = true;
+            document.querySelectorAll('input[name="engagementTypes"]').forEach(cb => cb.checked = false);
+            document.getElementById('contextualNotes').value = '';
+            document.querySelector('input[name="addGameFormat"][value="digital"]').checked = true;
+            document.querySelector('input[name="makeActive"][value="false"]').checked = true;
+            
+            // Populate platform checkboxes from game data
+            populatePlatformCheckboxes();
+            
+            // Show/hide platform and format sections based on ownership
+            updateOwnershipVisibility();
+            
+            // Reset to step 2
+            currentStep = 2;
+            document.getElementById('step2Personalize').style.display = 'block';
+            document.getElementById('step3Active').style.display = 'none';
+            document.getElementById('continueToStep3Btn').style.display = 'inline-flex';
+            document.getElementById('confirmAddGameBtn').style.display = 'none';
+            document.getElementById('backToStep2Btn').style.display = 'none';
+            
+            modal.style.display = 'flex';
+        }
+
+        function populatePlatformCheckboxes() {
+            const container = document.getElementById('addGamePlatformCheckboxes');
+            const platforms = selectedGame.platforms || [];
+            const platformNames = [];
+            
+            platforms.forEach(p => {
+                if (p.platform && p.platform.name) {
+                    const name = p.platform.name;
+                    if (!platformNames.includes(name)) {
+                        platformNames.push(name);
+                    }
+                }
+            });
+            
+            // Standard platform options
+            const standardPlatforms = ['PC', 'PlayStation 5', 'PlayStation 4', 'Xbox Series X/S', 'Xbox One', 'Nintendo Switch', 'Mac', 'Linux', 'iOS', 'Android'];
+            
+            let html = '';
+            standardPlatforms.forEach(platform => {
+                const isAvailable = platformNames.some(p => 
+                    p.toLowerCase().includes(platform.toLowerCase()) || 
+                    platform.toLowerCase().includes(p.toLowerCase().split(' ')[0])
+                );
+                if (isAvailable || platformNames.length === 0) {
+                    html += `
+                        <label class="platform-checkbox-label">
+                            <input type="checkbox" name="addGamePlatform" value="${escapeHtml(platform)}">
+                            <span>${escapeHtml(platform)}</span>
+                        </label>
+                    `;
+                }
+            });
+            
+            // Always show "Other" option
+            html += `
+                <label class="platform-checkbox-label">
+                    <input type="checkbox" name="addGamePlatform" value="Other" id="addGamePlatformOther">
+                    <span>Other</span>
+                </label>
+            `;
+            
+            container.innerHTML = html;
+            
+            // Handle "Other" checkbox
+            const otherCheckbox = document.getElementById('addGamePlatformOther');
+            if (otherCheckbox) {
+                otherCheckbox.addEventListener('change', function() {
+                    const customInput = document.getElementById('customPlatformInput');
+                    if (this.checked) {
+                        customInput.style.display = 'block';
+                    } else {
+                        customInput.style.display = 'none';
+                        document.getElementById('addGameCustomPlatform').value = '';
+                    }
+                });
+            }
+        }
+
+        function updateOwnershipVisibility() {
+            const ownership = document.querySelector('input[name="ownership"]:checked')?.value;
+            const platformSection = document.getElementById('platformSelectionSection');
+            const formatSection = document.getElementById('formatSelectionSection');
+            
+            if (ownership === 'owned' || ownership === 'played_before') {
+                platformSection.style.display = 'block';
+                formatSection.style.display = 'block';
+            } else {
+                platformSection.style.display = 'none';
+                formatSection.style.display = 'none';
+            }
+        }
+
+        // Listen for ownership changes
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('input[name="ownership"]').forEach(radio => {
+                radio.addEventListener('change', updateOwnershipVisibility);
+            });
+        });
+
+        // Continue to Step 3
+        function continueToStep3() {
+            const ownership = document.querySelector('input[name="ownership"]:checked')?.value;
+            if (!ownership) {
+                alert('Please select an ownership/intent option');
+                return;
+            }
+            
+            // If owned or played_before, require platforms
+            if ((ownership === 'owned' || ownership === 'played_before')) {
+                const platformCheckboxes = document.querySelectorAll('input[name="addGamePlatform"]:checked');
+                const selectedPlatforms = Array.from(platformCheckboxes)
+                    .filter(cb => cb.value !== 'Other')
+                    .map(cb => cb.value);
+                const customPlatform = document.getElementById('addGameCustomPlatform').value.trim();
+                const otherChecked = document.getElementById('addGamePlatformOther')?.checked;
+                
+                if (otherChecked && customPlatform) {
+                    selectedPlatforms.push(customPlatform);
+                }
+                
+                if (selectedPlatforms.length === 0) {
+                    alert('Please select at least one platform');
+                    return;
+                }
+            }
+            
+            // Show Step 3
+            currentStep = 3;
+            document.getElementById('step2Personalize').style.display = 'none';
+            document.getElementById('step3Active').style.display = 'block';
+            document.getElementById('continueToStep3Btn').style.display = 'none';
+            document.getElementById('confirmAddGameBtn').style.display = 'inline-flex';
+            document.getElementById('backToStep2Btn').style.display = 'inline-flex';
+        }
+
+        // Back to Step 2
+        function backToStep2() {
+            currentStep = 2;
+            document.getElementById('step2Personalize').style.display = 'block';
+            document.getElementById('step3Active').style.display = 'none';
+            document.getElementById('continueToStep3Btn').style.display = 'inline-flex';
+            document.getElementById('confirmAddGameBtn').style.display = 'none';
+            document.getElementById('backToStep2Btn').style.display = 'none';
+        }
+
+        // Close add game modal
+        function closeAddGameModal(clearSelection = false) {
+            const modal = document.getElementById('addGameModal');
+            modal.style.display = 'none';
+            currentStep = 2;
+            if (clearSelection) {
+                selectedGame = null;
+                // Keep search results visible - don't hide them
+            }
+        }
+
+        // Confirm and add game
+        async function confirmAddGame() {
+            if (!selectedGame) {
+                closeAddGameModal();
+                return;
+            }
+
+            // Get form values
+            const ownership = document.querySelector('input[name="ownership"]:checked')?.value || 'owned';
+            const initialStatus = document.querySelector('input[name="initialStatus"]:checked')?.value || 'NOT_STARTED';
+            const engagementTypeCheckboxes = document.querySelectorAll('input[name="engagementTypes"]:checked');
+            const selectedEngagementTypes = Array.from(engagementTypeCheckboxes).map(cb => cb.value);
+            const contextualNotes = document.getElementById('contextualNotes').value.trim();
+            const makeActive = document.querySelector('input[name="makeActive"]:checked')?.value === 'true';
+
+            // Get selected platforms (only for owned/played_before)
+            let selectedPlatforms = [];
+            if (ownership === 'owned' || ownership === 'played_before') {
+                const platformCheckboxes = document.querySelectorAll('input[name="addGamePlatform"]:checked');
+                selectedPlatforms = Array.from(platformCheckboxes)
+                    .filter(cb => cb.value !== 'Other')
+                    .map(cb => cb.value);
+                const customPlatform = document.getElementById('addGameCustomPlatform').value.trim();
+                const otherChecked = document.getElementById('addGamePlatformOther')?.checked;
+                
+                if (otherChecked && customPlatform) {
+                    selectedPlatforms.push(customPlatform);
+                }
+            }
+
+            // Get format (only for owned/played_before)
+            const formatRadio = document.querySelector('input[name="addGameFormat"]:checked');
+            const format = formatRadio ? formatRadio.value : 'digital';
+
+            // Disable modal buttons
+            document.getElementById('confirmAddGameBtn').disabled = true;
+            document.getElementById('confirmAddGameBtn').textContent = 'Adding...';
+
+            // Create form data
+            const formData = new URLSearchParams();
+            formData.append('title', selectedGame.name);
+            if (selectedGame.id) {
+                formData.append('igdbId', selectedGame.id.toString());
+            }
+            formData.append('ownership', ownership);
+            formData.append('initialStatus', initialStatus);
+            // Add all selected engagement types
+            selectedEngagementTypes.forEach(et => {
+                formData.append('engagementTypes', et);
+            });
+            if (contextualNotes) {
+                formData.append('contextualNotes', contextualNotes);
+            }
+            formData.append('makeActiveNow', makeActive.toString());
+            
+            // Add platforms
+            selectedPlatforms.forEach(platform => {
+                formData.append('platforms', platform);
+            });
+            
+            if (selectedGame.background_image) {
+                formData.append('imageUrl', selectedGame.background_image);
+            }
+            
+            if (selectedGame.released) {
+                const releaseYear = selectedGame.released.split('-')[0];
+                if (releaseYear) {
+                    formData.append('releaseYear', releaseYear);
+                }
+            }
+            
+            if (format) {
+                formData.append('format', format);
+            }
+
+            try {
+                const response = await fetch('/library/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: formData.toString(),
+                    redirect: 'follow'
+                });
+
+                if (response.ok || response.redirected) {
+                    // Close modal
+                    closeAddGameModal();
+                    
+                    // Redirect to library with success message
+                    const isPlaying = makeActive || initialStatus === 'PLAYING';
+                    const redirectUrl = `/library?added=true&title=${encodeURIComponent(selectedGame.name)}&playing=${isPlaying}`;
+                    window.location.href = redirectUrl;
+                } else {
+                    throw new Error(`Failed to add game: Server returned status ${response.status}`);
+                }
+            } catch (error) {
+                console.error('Error adding game:', error);
+                alert('Failed to add game. Please try again.');
+                document.getElementById('confirmAddGameBtn').disabled = false;
+                document.getElementById('confirmAddGameBtn').textContent = 'Add to Library';
+            }
+        }
+
+        function clearSelection() {
+            selectedGame = null;
+            // Don't hide search results - keep them visible so user can select a different game
+            // document.getElementById('addGameResults').style.display = 'none';
+        }
+
+        function toggleManualEntry() {
+            const form = document.getElementById('manualEntryForm');
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function useManualEntry() {
+            const title = document.getElementById('manualTitle').value.trim();
+            if (!title) {
+                alert('Please enter a game title');
+                return;
+            }
+            
+            const platform = document.getElementById('manualPlatform').value.trim();
+            const year = document.getElementById('manualYear').value;
+            
+            selectedGame = {
+                name: title,
+                id: null,
+                background_image: null,
+                platforms: platform ? [{ platform: { name: platform } }] : [],
+                released: year ? `${year}-01-01` : null
+            };
+            
+            document.getElementById('manualEntryForm').style.display = 'none';
+            document.getElementById('manualTitle').value = '';
+            document.getElementById('manualPlatform').value = '';
+            document.getElementById('manualYear').value = '';
+            
+            showAddGameModal();
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('addGameModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeAddGameModal();
+            }
+        });
+    </script>
+</body>
+</html>

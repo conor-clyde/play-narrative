@@ -58,6 +58,7 @@ application-prod.properties
 *.db
 *.sqlite
 *.h2.db
+data/
 
 # Temporary files
 *.tmp
